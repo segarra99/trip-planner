@@ -1,0 +1,17 @@
+default: &default
+  adapter: postgis
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  url: <%= ENV["DATABASE_URL"] %>
+
+development:
+  <<: *default
+  database: roadtrip_development
+
+test:
+  <<: *default
+  database: roadtrip_test
+
+production:
+  <<: *default
+  database: roadtrip_production

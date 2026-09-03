@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: roadtrip
+      POSTGRES_PASSWORD: roadtrip_dev
+      POSTGRES_DB: roadtrip_development
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roadtrip -d roadtrip_development"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -b '0.0.0.0'"
+    volumes:
+      - .:/app
+      - bundle_cache:/usr/local/bundle
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgis://roadtrip:roadtrip_dev@db:5432/roadtrip_development
+      RAILS_ENV: development
+
+  test:
+    build: .
+    command: bundle exec rspec
+    volumes:
+      - .:/app
+      - bundle_cache:/usr/local/bundle
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgis://roadtrip:roadtrip_dev@db:5432/roadtrip_test
+      RAILS_ENV: test
+    profiles:
+      - test
+
+volumes:
+  pgdata:
+  bundle_cache:
