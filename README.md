@@ -16,6 +16,7 @@ docker-compose up
 ```
 
 This will:
+
 - Start a PostgreSQL database with PostGIS extension
 - Build and start the Rails application
 - Visit http://localhost:3000 to see this README
@@ -23,6 +24,7 @@ This will:
 ### 2. Build your application
 
 The starter kit provides a minimal Rails 8 API application. You'll need to:
+
 - Design your data models
 - Create migrations
 - Build your API endpoints
@@ -31,6 +33,7 @@ The starter kit provides a minimal Rails 8 API application. You'll need to:
 ### 3. Import the data
 
 The `data/` folder contains:
+
 - `locations.csv` - Portuguese cities that serve as trip origins/destinations
 - `pois.csv` - Points of Interest across Portugal
 
@@ -40,22 +43,22 @@ Create a mechanism to import this data into your database (rake task, seeds, etc
 
 ### locations.csv
 
-| Column | Description |
-|--------|-------------|
-| name | City name |
+| Column | Description       |
+| ------ | ----------------- |
+| name   | City name         |
 | region | Geographic region |
-| lat | Latitude |
-| lng | Longitude |
+| lat    | Latitude          |
+| lng    | Longitude         |
 
 ### pois.csv
 
-| Column | Description |
-|--------|-------------|
-| name | POI name |
-| description | Brief description |
-| lat | Latitude |
-| lng | Longitude |
-| categories | Comma-separated category list |
+| Column      | Description                   |
+| ----------- | ----------------------------- |
+| name        | POI name                      |
+| description | Brief description             |
+| lat         | Latitude                      |
+| lng         | Longitude                     |
+| categories  | Comma-separated category list |
 
 ## Useful Commands
 
@@ -113,3 +116,78 @@ ST_Within(point, ST_Buffer(line::geography, distance))
 ---
 
 Good luck!
+
+## Architecture Decisions
+
+### Data Structure
+
+I first chose to start by designing the database structure. 3 things must be stored separately:
+
+- Locations
+- Points of Interest (POI)
+- Categories
+
+Thinking about the best way of storing the categories I reached these 2 options:
+
+- Option 1: Two table design (no category table)
+  This would mean having a categories column (probably a JSON or text column) on the POI table. The only pro I see for this approach is simplicity. Cons would include being unable to effectively query by category without parsing text and schema changes would be harder in the future (such as adding a created_at field). It would limit future features, like filtering by category popularity.
+
+- Option 2: Three tables with a join table
+  Pros for this approach include query flexibility (being able to query for questions like show me all POIs of a specific category), data consistency (all category names live in one table, this means we can normalize data at the source, to avoid differences like "beach" and "Beach"), and future proofing (if in the future we want to add a created_at column or track which POIs most commonly use each category). Only con I see would be database overhead.
+
+I opted to go with option 2. While option 1 would be simpler it would limit the future features this app could have.
+
+### Importing Data
+
+I then started thinking about the best way to import data from the CSV files. There are 3 options:
+
+- Option 1: Rake task
+  Pros include having a clear separation of concerns (importing data is a separate task), and being easy to test. Cons would include being a bit overkill for quick local development.
+
+- Option 2: Seeds file
+  Pros are simplicity, a single file approach, as well as running a single command and loading everything. Cons are mixing 2 responsibilities (seeding vs importing external data) and being harder to test.
+
+- Option 3: Using a gem
+  Pros include having to write less code and handling easy to miss edge cases. Cons include adding a dependency (another thing to maintain and update), being a bit too much for simple structured CSV data, and having to learn a new library's API.
+
+I'll import the CSV files directly in db/seeds.rb since these represent the initial dataset for the challenge. This keeps setup simple and allows running `rails db:seed` to populate the database immediately. I thought about using a rake task to enforce separation of concerns, but I think that would be overengineering for this case since these csv files are the initial data for the exercise.
+
+### Preventing Duplicates
+
+Next step is preventing duplicates while importing data, since the CSV structure may change. There are 2 options:
+
+- Option 1: Check existence before creating
+  This works but is slow for large files, hits the database once for every row.
+
+- Option 2: Upsert in batch with unique constraints
+  This is more efficient since it's a single SQL statement, that will either insert or update each row without creating duplicates. It's faster and handles everything automatically.
+
+I decided to go with option 2.
+
+### Import Error Handling
+
+- Option 1: Log and skip bad rows
+  This is the choice that makes sense when faulty data is expected.
+
+- Option 2: Transaction rollback
+  Pros include data consistency, but cons are that it will be slow for large datasets, and that we may need to re-import everything after failure. It's an all or nothing approach.
+
+- Option 3: Import after validation
+  With this option we first validate data, and only import it after ensuring the data is good. Pros are having clear failures (we can see exactly what's wrong before importing, and fix it), this also works towards good user experience. Cons include passing over data twice (slow for large files) and still having the all or nothing approach of option 2.
+
+I'll validate the CSV structure and content before importing. This catches missing columns, invalid coordinates, and other issues before touching the database. For this small dataset, it's only a few extra lines of code and gives clear feedback about what needs fixing.
+
+### Storing Location Coordinates
+
+Thinking about how to store coordinates I reached these 3 options:
+
+- Option 1: Text columns for latitude and longitude
+  Pros are being easy to export in simple formats like CSV or JSON, as well as working with any database system. Cons are being unable to use spatial queries, needing manual math (for distance calculations), and no special indexing (slow for finding nearby locations). This approach throws away the built-in spatial functions of PostGIS, so I'm not moving forward with it.
+
+- Option 2: GeoJSON text column
+  Pros are that this is a standard format that works with any mapping library (like Google Maps or Leaflet), and being easy to export/import in JSON API responses. Cons include having no native spatial functions (like option 1), and the database not recognizing this as a point, even though it contains coordinates.
+
+- Option 3: Native PostGIS geometry columns
+  Pros include removing manual math by using built-in spatial functions, GiST indexes (we can create GiST indexes to efficiently support spatial queries such as finding nearby POIs), and type safety (db validates that values are valid geometry points).
+
+I opted for option 3 because spatial queries are a core requirement, and PostGIS provides the appropriate data types, functions, and indexing for this use case.
