@@ -150,7 +150,7 @@ I then started thinking about the best way to import data from the CSV files. Th
 - Option 3: Using a gem
   Pros include having to write less code and handling easy to miss edge cases. Cons include adding a dependency (another thing to maintain and update), being a bit too much for simple structured CSV data, and having to learn a new library's API.
 
-I'll import the CSV files directly in db/seeds.rb since these represent the initial dataset for the challenge. This keeps setup simple and allows running `rails db:seed` to populate the database immediately. I thought about using a rake task to enforce separation of concerns, but I think that would be overengineering for this case since these csv files are the initial data for the exercise.
+I'll import the CSV files directly in db/seeds.rb since these represent the initial dataset for the challenge. This keeps setup simple and allows running rails db:seed to populate the database immediately. I thought about using a rake task to enforce separation of concerns, but I think that would be overengineering for this case since these csv files are the initial data for the exercise.
 
 ### Preventing Duplicates
 
@@ -191,3 +191,18 @@ Thinking about how to store coordinates I reached these 3 options:
   Pros include removing manual math by using built-in spatial functions, GiST indexes (we can create GiST indexes to efficiently support spatial queries such as finding nearby POIs), and type safety (db validates that values are valid geometry points).
 
 I opted for option 3 because spatial queries are a core requirement, and PostGIS provides the appropriate data types, functions, and indexing for this use case.
+
+### Database Schema
+
+The migrations create 4 tables:
+
+- locations, with a name, region and location_point
+- pois, with a name, description and location_point
+- categories, with a name
+- categories_pois, which connects POIs and categories
+
+I chose to keep locations, POIs and categories in separate tables. Categories are connected to POIs through a join table because both sides can have multiple related records. This also makes it easier to query POIs by category without storing and parsing a list of categories on the POI itself.
+
+Names and regions use string because they are short values, while POI descriptions use text because they do not need an artificial length limit. The name and coordinate fields are required because a record without them would not be useful to the application.
+
+Locations and POIs store their coordinates as geometry(Point,4326). This keeps the coordinate data in a format PostGIS can use for spatial queries, such as finding nearby POIs. The index choices and their implementation details are documented in the migration files.
