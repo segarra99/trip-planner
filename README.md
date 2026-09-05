@@ -204,3 +204,36 @@ The migrations create 4 tables:
 I chose to keep locations, POIs and categories in separate tables. Categories are connected to POIs through a join table because both sides can have multiple related records. This also makes it easier to query POIs by category without storing and parsing a list of categories on the POI itself.
 Names and regions use string because they are short values, while POI descriptions use text because they do not need an artificial length limit. The name and coordinate fields are required because a record without them would not be useful to the application.
 Locations and POIs store their coordinates as geometry(Point,4326). This keeps the coordinate data in a format PostGIS can use for spatial queries, such as finding nearby POIs. The index choices and their implementation details are documented in the migration files.
+
+### API Response Format
+
+I considered whether the controllers should return HTML views or JSON responses.
+
+- Option 1: HTML views
+  This would allow Rails to render the frontend directly from controller actions. This could be useful if I decide to implement the frontend bonus using Rails views, but it would not directly satisfy the REST API requirement.
+
+- Option 2: JSON responses
+  This keeps the backend focused on providing the REST API and allows any frontend to consume the API independently. It also leaves the option of adding a Rails-based frontend later without changing the underlying data model.
+
+I opted for JSON responses because the core requirement is a REST API. If I implement the frontend bonus later, I can add Rails views without changing the database structure or the API's underlying data.
+
+### API Structure
+
+For the API, I considered whether to treat trip planning as a traditional resource or as an operation.
+
+- Option 1: Resource-based controllers
+  This would mean having controllers that map directly to database resources, such as LocationsController and PoisController. This fits Rails conventions well and makes the API endpoints easy to understand. Trip planning would still need a separate endpoint because a trip is not stored in the database.
+
+- Option 2: A single controller for the entire API
+  This would keep all endpoints in one place, but would mix responsibilities and make the controller harder to maintain as more functionality is added.
+
+I opted for separate controllers based on the main API responsibilities. Locations and POIs are persisted resources, so they have their own controllers. Trip planning is an operation rather than a persisted resource, so it will have its own controller without requiring a Trip model.
+
+### Locations
+
+I will start by implementing the Locations before the more complex POI and trip planning endpoints. Locations are a relatively simple resource and this provides a way to establish the structure and response format before implementing the more complex spatial queries.
+
+The API will initially support:
+
+- GET /locations to browse available locations
+- GET /locations/:id to view a specific location
