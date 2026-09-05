@@ -202,7 +202,5 @@ The migrations create 4 tables:
 - categories_pois, which connects POIs and categories
 
 I chose to keep locations, POIs and categories in separate tables. Categories are connected to POIs through a join table because both sides can have multiple related records. This also makes it easier to query POIs by category without storing and parsing a list of categories on the POI itself.
-
 Names and regions use string because they are short values, while POI descriptions use text because they do not need an artificial length limit. The name and coordinate fields are required because a record without them would not be useful to the application.
-
 Locations and POIs store their coordinates as geometry(Point,4326). This keeps the coordinate data in a format PostGIS can use for spatial queries, such as finding nearby POIs. The index choices and their implementation details are documented in the migration files.
