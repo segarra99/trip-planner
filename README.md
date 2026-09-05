@@ -229,6 +229,18 @@ For the API, I considered whether to treat trip planning as a traditional resour
 
 I opted for separate controllers based on the main API responsibilities. Locations and POIs are persisted resources, so they have their own controllers. Trip planning is an operation rather than a persisted resource, so it will have its own controller without requiring a Trip model.
 
+### Testing
+
+For testing I considered 2 options:
+
+- Option 1: Integration tests
+  These test the application through HTTP requests and verify that the different parts work together as expected.
+
+- Option 2: Unit tests
+  These test individual pieces of application logic in isolation, making it easier to cover more complex logic and edge cases.
+
+I'll use both. Integration tests will cover the API behaviour, while unit tests will cover application logic that makes sense to test separately.
+
 ### Locations
 
 I will start by implementing the Locations before the more complex POI and trip planning endpoints. Locations are a relatively simple resource and this provides a way to establish the structure and response format before implementing the more complex spatial queries.
