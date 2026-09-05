@@ -1,17 +1,19 @@
 default: &default
-  adapter: postgis
-  encoding: unicode
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  url: <%= ENV["DATABASE_URL"] %>
+    adapter: postgis
+    encoding: unicode
+    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+    schema_search_path: public
+    url: <%= ENV["DATABASE_URL"] %>
+    template: template_postgis
 
 development:
-  <<: *default
-  database: roadtrip_development
+    <<: *default
+    database: roadtrip_development
 
 test:
-  <<: *default
-  database: roadtrip_test
+    <<: *default
+    database: roadtrip_test
 
 production:
-  <<: *default
-  database: roadtrip_production
+    <<: *default
+    database: roadtrip_production
