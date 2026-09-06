@@ -16,22 +16,17 @@ class PoisController < ActionController::API
   end
 
   def nearest
+    point_sql = ApplicationRecord.sanitize_sql_array(
+      [
+        'ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography',
+        params[:lng].to_f,
+        params[:lat].to_f
+      ]
+    )
+
     poi = Poi
           .order(
-            Arel.sql(
-              ApplicationRecord.sanitize_sql_array(
-                [
-                  <<~SQL.squish,
-                    ST_Distance(
-                      location_point::geography,
-                      ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography
-                    )
-                  SQL
-                  params[:lng].to_f,
-                  params[:lat].to_f
-                ]
-              )
-            )
+            Arel.sql("location_point::geography <-> #{point_sql}")
           )
           .first
 
