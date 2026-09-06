@@ -23,13 +23,13 @@ RSpec.describe 'Trip Planning API', type: :request do
         location_point: factory.point(-9.0, 39.5)
       )
 
-      second_poi = Poi.create!(
+      Poi.create!(
         name: 'Second POI',
         description: 'Second stop',
         location_point: factory.point(-8.8, 40.3)
       )
 
-      Poi.create!(
+      third_poi = Poi.create!(
         name: 'Third POI',
         description: 'Third stop',
         location_point: factory.point(-8.7, 40.7)
@@ -48,7 +48,7 @@ RSpec.describe 'Trip Planning API', type: :request do
       expect(pois.length).to eq(2)
       expect(pois.map { |poi| poi['id'] }).to eq([
                                                    first_poi.id,
-                                                   second_poi.id
+                                                   third_poi.id
                                                  ])
     end
 
