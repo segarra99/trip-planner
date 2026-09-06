@@ -202,6 +202,17 @@ RSpec.describe 'Trip Planning API', type: :request do
       expect(response).to have_http_status(:not_found)
     end
 
+    it 'returns 404 when the category does not exist' do
+      get '/trip-planning', params: {
+        origin: 1,
+        destination: 2,
+        number_of_pois: 2,
+        category: 999999
+      }
+
+      expect(response).to have_http_status(:not_found)
+    end
+
     it 'returns 400 when origin is missing' do
       factory = RGeo::Geographic.spherical_factory(srid: 4326)
 
