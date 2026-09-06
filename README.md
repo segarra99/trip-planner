@@ -332,3 +332,27 @@ The first two are simple, but can result in all the stops being concentrated in 
 The category filter will be applied before selecting the POIs, so only matching POIs are considered.
 
 If fewer POIs are available than requested, I will return all matching POIs.
+
+### Find Nearest POI
+
+The API will support:
+
+- GET /pois/nearest to find the closest POI to a given latitude and longitude
+
+There are a couple of ways to structure the endpoint:
+
+- Option 1: Add nearest to PoisController as a collection action.
+
+- Option 2: Create a separate controller for the endpoint.
+
+I will use Option 1 because the endpoint is still operating on the POI collection. A separate controller would add unnecessary structure.
+
+For the implementation, there are also two options:
+
+- Option 1: Keep the query in PoisController.
+
+- Option 2: Create a separate service for finding the nearest POI.
+
+I will use Option 1 because the logic is simple: validate the coordinates and run a single PostGIS query. A service would be a bit overkill for this operation.
+
+The distance will be calculated using PostGIS rather than in Ruby.
