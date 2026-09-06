@@ -270,3 +270,41 @@ The API will support:
 
 - GET /pois to browse available POIs, with optional name and category filter
 - GET /pois/:id to view a specific POI
+
+### Trip Planning
+
+This is the most complex part of the API because it needs to use the geographic coordinates of the origin, destination, and POIs to determine which POIs are along the route and return them in order.
+
+The API will support:
+
+- GET /trip-planning to plan a route between an origin and destination, returning the requested number of POIs along the route, with an optional category filter
+
+The challenge does not define exactly how to decide whether a POI is along the route, or how to choose the requested number when there are more POIs available. I will make these choices based on keeping the implementation simple while still making the result useful.
+
+#### Determining whether a POI is along the route
+
+There are a few possible approaches:
+
+- Option 1: Straight-line route + threshold
+  Consider a POI part of the route if it is within a certain distance of the line. This is simple and can be handled entirely with PostGIS.
+
+- Option 2: Actual driving route
+  Use a routing service to calculate the road route and find POIs near it. This would be more realistic, but adds an external dependency and more complexity.
+
+I will use the straight line with a distance threshold. It keeps the implementation self-contained and is sufficient for the scope of this challenge.
+
+Selecting the requested POIs
+
+If more POIs are available than requested, there are a few options:
+
+- Option 1: Return the ones closest to the origin.
+
+- Option 2: Return the ones closest to the destination.
+
+- Option 3: Spread them across the route.
+
+The first two are simple, but can result in all the stops being concentrated in one part of the trip. I will instead spread the selected POIs across the route, choosing them at roughly even intervals.
+
+The category filter will be applied before selecting the POIs, so only matching POIs are considered.
+
+If fewer POIs are available than requested, I will return all matching POIs.
