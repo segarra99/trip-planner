@@ -329,6 +329,14 @@ If more POIs are available than requested, there are a few options:
 
 The first two are simple, but can result in all the stops being concentrated in one part of the trip. I will instead spread the selected POIs across the route, choosing them at roughly even intervals.
 
+Regarding how to spread them there are 2 options:
+
+- Option 1: Select POIs at roughly even positions in the ordered list.
+
+- Option 2: Divide the route into sections and select POIs based on their geographic position along the route.
+
+I will use Option 1 because it keeps the implementation simple while still spreading the selected POIs across the route. This is an approximation rather than a true geographic distribution: if several POIs are clustered together, they can still be closer to each other than the selected positions suggest. If I still have time after doing the bonus I think I'll revisit this.
+
 The category filter will be applied before selecting the POIs, so only matching POIs are considered.
 
 If fewer POIs are available than requested, I will return all matching POIs.
