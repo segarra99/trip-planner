@@ -251,7 +251,7 @@ I will start by implementing the Locations before the more complex POI and trip 
 
 The API will initially support:
 
-- GET /locations to browse available locations
+- GET /locations to browse available locations, with an optional name filter
 - GET /locations/:id to view a specific location
 
 ### Categories
@@ -261,3 +261,12 @@ The only endpoint I'll do for now is:
 - GET /categories to fetch all categories
 
 I'm creating this endpoint just so that a future frontend may fetch it for filtering purposes, instead of hardcoding them.
+
+### POIs
+
+I will implement the POI endpoints after Locations and Categories. POIs are more complex because they have categories and geographic coordinates.
+
+The API will support:
+
+- GET /pois to browse available POIs, with optional name and category filter
+- GET /pois/:id to view a specific POI
