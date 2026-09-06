@@ -293,7 +293,31 @@ There are a few possible approaches:
 
 I will use the straight line with a distance threshold. It keeps the implementation self-contained and is sufficient for the scope of this challenge.
 
-Selecting the requested POIs
+The route is defined by the origin and destination. I will keep this route fixed when evaluating and ordering POIs rather than recalculating it after each selected POI. Recalculating the route after each stop would turn the problem into planning a sequence of intermediate stops, which is beyond the scope of the challenge.
+
+#### Distance threshold
+
+The challenge does not define a distance threshold for determining whether a POI is along the route. I considered deriving the threshold from the distance between POIs and the provided locations, but the POIs are not explicitly associated with a location and some are intentionally distributed far beyond the nearest listed location. Using the furthest such distance would therefore make the route corridor unnecessarily broad.
+
+Instead, I will use a fixed 10 km threshold based on the geographic distribution of the provided dataset. This provides a reasonable tolerance for considering a POI to be along a trip without including POIs that are significantly off the route.
+
+The same threshold is applied to the fixed origin-to-destination line for each trip.
+
+#### Service object structure
+
+The trip planning logic will be handled by a dedicated service because it contains enough application logic to keep it out of the controller.
+
+There are a few ways I could structure the trip planning service:
+
+- Option 1: Use an instance with initialize to store the origin, destination, category, and number of POIs, then call plan.
+
+- Option 2: Use plan as a class method and pass everything it needs directly to it.
+
+Option 1 makes more sense when the service needs to keep state or dependencies that are shared across several operations. Option 2 is simpler when the operation is stateless and everything it needs is provided as input.
+
+I will use Option 2 because trip planning is currently a single stateless operation. There is no useful state that needs to be stored between method calls, so creating a service instance just to call `plan` would add unnecessary structure.
+
+#### Selecting the requested POIs
 
 If more POIs are available than requested, there are a few options:
 
