@@ -108,4 +108,58 @@ RSpec.describe 'POIs API', type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe 'GET /pois/nearest' do
+    it 'returns the closest POI' do
+      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+
+      nearest_poi = Poi.create!(
+        name: 'Nearest POI',
+        description: 'Closest point',
+        location_point: factory.point(-9.14, 38.72)
+      )
+
+      Poi.create!(
+        name: 'Farther POI',
+        description: 'Farther point',
+        location_point: factory.point(-8.6, 41.15)
+      )
+
+      get '/pois/nearest', params: {
+        lat: 38.7223,
+        lng: -9.1393
+      }
+
+      expect(response).to have_http_status(:ok)
+
+      poi = JSON.parse(response.body)
+
+      expect(poi['id']).to eq(nearest_poi.id)
+    end
+
+    it 'returns 400 when latitude is missing' do
+      get '/pois/nearest', params: {
+        lng: -9.1393
+      }
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it 'returns 400 when longitude is missing' do
+      get '/pois/nearest', params: {
+        lat: 38.7223
+      }
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it 'returns 400 when coordinates are invalid' do
+      get '/pois/nearest', params: {
+        lat: 100,
+        lng: -9.1393
+      }
+
+      expect(response).to have_http_status(:bad_request)
+    end
+  end
 end
