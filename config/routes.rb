@@ -2,7 +2,11 @@ Rails.application.routes.draw do
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
   resources :locations, only: %i[index show]
   resources :categories, only: :index
-  resources :pois, only: %i[index show]
+  resources :pois, only: %i[index show] do
+    collection do
+      get :nearest
+    end
+  end
 
   get '/trip-planning', to: 'trip_planning#plan'
 
