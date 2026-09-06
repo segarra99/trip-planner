@@ -1,6 +1,7 @@
 class LocationsController < ActionController::API
   def index
     locations = Location.all
+    locations = locations.name_matches(params[:name]) if params[:name].present?
 
     render json: locations
   end
