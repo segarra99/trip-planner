@@ -241,6 +241,10 @@ For testing I considered 2 options:
 
 I'll use both. Integration tests will cover the API behaviour, while unit tests will cover application logic that makes sense to test separately.
 
+### Test-Driven Development
+
+I'm using TDD by writing the tests before the implementation, rather than just making tests pass for already developed functionality.
+
 ### Locations
 
 I will start by implementing the Locations before the more complex POI and trip planning endpoints. Locations are a relatively simple resource and this provides a way to establish the structure and response format before implementing the more complex spatial queries.
@@ -249,3 +253,11 @@ The API will initially support:
 
 - GET /locations to browse available locations
 - GET /locations/:id to view a specific location
+
+### Categories
+
+The only endpoint I'll do for now is:
+
+- GET /categories to fetch all categories
+
+I'm creating this endpoint just so that a future frontend may fetch it for filtering purposes, instead of hardcoding them.
