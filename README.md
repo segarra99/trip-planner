@@ -420,3 +420,15 @@ I considered how to return coordinates in the API. There are 2 options:
   This is simpler for API consumers and keeps the database representation internal.
 
 I opted for option 2. The API returns latitude and longitude while PostGIS geometry is used internally for spatial queries.
+
+### API Error Response Format
+
+I considered how to structure error responses for invalid requests and missing resources. There are 2 options:
+
+- Option 1: Include full exception details
+  This would expose internal implementation details like model names and stack traces, which could be a security risk in production.
+
+- Option 2: Simplified error messages with just the resource name (for 404) or generic error field (for validation errors)
+  Pros include hiding internal implementation details, cleaner responses for frontend consumption, and easier to customize per error type. Cons would be less detailed debugging information during development.
+
+I opted for option 2. The API returns { "error": "<message>" } for validation errors and { "error": "<Model> not found" } for missing resources. This keeps responses clean while still providing actionable feedback.
