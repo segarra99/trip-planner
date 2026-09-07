@@ -245,6 +245,14 @@ I'll use both. Integration tests will cover the API behaviour, while unit tests 
 
 I'm using TDD by writing the tests before the implementation, rather than just making tests pass for already developed functionality.
 
+### Error Handling
+
+The API returns appropriate HTTP status codes for invalid requests and missing resources.
+
+- 400 Bad Request: invalid or missing request parameters.
+
+- 404 Not Found: the requested resource does not exist.
+
 ### Locations
 
 I will start by implementing the Locations before the more complex POI and trip planning endpoints. Locations are a relatively simple resource and this provides a way to establish the structure and response format before implementing the more complex spatial queries.
