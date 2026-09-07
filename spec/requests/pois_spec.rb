@@ -19,9 +19,38 @@ RSpec.describe 'POIs API', type: :request do
                 description: 'Filter by category ID',
                 schema: { type: :integer, example: 1 }
 
+      parameter name: :page,
+                in: :query,
+                required: false,
+                description: 'Page number',
+                schema: {
+                  type: :integer,
+                  default: 1,
+                  example: 1
+                }
+
+      parameter name: :per_page,
+                in: :query,
+                required: false,
+                description: 'Number of POIs per page',
+                schema: {
+                  type: :integer,
+                  default: 10,
+                  example: 10
+                }
+
       response '200', 'POIs found' do
-        schema type: :array,
-               items: { '$ref' => '#/components/schemas/Poi' }
+        schema type: :object,
+               properties: {
+                 pois: {
+                   type: :array,
+                   items: { '$ref' => '#/components/schemas/Poi' }
+                 },
+                 pagination: {
+                   '$ref' => '#/components/schemas/Pagination'
+                 }
+               },
+               required: %w[pois pagination]
 
         context 'when listing all POIs' do
           let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
@@ -49,10 +78,100 @@ RSpec.describe 'POIs API', type: :request do
           end
 
           run_test! do |response|
-            pois = JSON.parse(response.body)
+            body = JSON.parse(response.body)
+            pois = body['pois']
+
             expect(pois.length).to eq(2)
             expect(pois.map { |poi| poi['name'] })
               .to contain_exactly('Praia da Ursa', 'Lisbon Museum')
+          end
+        end
+
+        context 'when no pagination params are provided' do
+          let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
+
+          before do
+            2.times do |index|
+              Poi.create!(
+                name: "POI #{index + 1}",
+                description: "Description #{index + 1}",
+                location_point: factory.point(-9.0 - index, 38.0 + index)
+              )
+            end
+          end
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body['pois'].length).to eq(2)
+
+            expect(body['pagination']).to eq(
+              'page' => 1,
+              'per_page' => 10,
+              'total' => 2,
+              'total_pages' => 1
+            )
+          end
+        end
+
+        context 'when pagination params are provided' do
+          let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
+
+          before do
+            5.times do |index|
+              Poi.create!(
+                name: "POI #{index + 1}",
+                description: "Description #{index + 1}",
+                location_point: factory.point(-9.0 - index, 38.0 + index)
+              )
+            end
+          end
+
+          let(:page) { 2 }
+          let(:per_page) { 2 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body['pois'].map { |poi| poi['name'] })
+              .to eq(['POI 3', 'POI 4'])
+
+            expect(body['pagination']).to eq(
+              'page' => 2,
+              'per_page' => 2,
+              'total' => 5,
+              'total_pages' => 3
+            )
+          end
+        end
+
+        context 'when the requested page is beyond the last page' do
+          let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
+
+          before do
+            3.times do |index|
+              Poi.create!(
+                name: "POI #{index + 1}",
+                description: "Description #{index + 1}",
+                location_point: factory.point(-9.0 - index, 38.0 + index)
+              )
+            end
+          end
+
+          let(:page) { 5 }
+          let(:per_page) { 2 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body['pois']).to eq([])
+
+            expect(body['pagination']).to eq(
+              'page' => 5,
+              'per_page' => 2,
+              'total' => 3,
+              'total_pages' => 2
+            )
           end
         end
 
@@ -77,7 +196,9 @@ RSpec.describe 'POIs API', type: :request do
           end
 
           run_test! do |response|
-            pois = JSON.parse(response.body)
+            body = JSON.parse(response.body)
+            pois = body['pois']
+
             expect(pois.length).to eq(1)
             expect(pois.first['name']).to eq('Praia da Ursa')
           end
@@ -111,7 +232,9 @@ RSpec.describe 'POIs API', type: :request do
           let(:category) { beach.id }
 
           run_test! do |response|
-            pois = JSON.parse(response.body)
+            body = JSON.parse(response.body)
+            pois = body['pois']
+
             expect(pois.length).to eq(1)
             expect(pois.first['name']).to eq('Praia da Ursa')
           end

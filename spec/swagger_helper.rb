@@ -153,6 +153,17 @@ RSpec.configure do |config|
               }
             },
             required: ['error']
+          },
+
+          Pagination: {
+            type: :object,
+            properties: {
+              page: { type: :integer, example: 1 },
+              per_page: { type: :integer, example: 20 },
+              total: { type: :integer, example: 47 },
+              total_pages: { type: :integer, example: 3 }
+            },
+            required: %w[page per_page total total_pages]
           }
         }
       }

@@ -16,13 +16,42 @@ RSpec.describe 'Locations API', type: :request do
                   example: 'Lisboa'
                 }
 
-      response '200', 'locations found' do
-        schema type: :array,
-               items: {
-                 '$ref' => '#/components/schemas/Location'
-               }
+      parameter name: :page,
+                in: :query,
+                required: false,
+                description: 'Page number',
+                schema: {
+                  type: :integer,
+                  default: 1,
+                  example: 1
+                }
 
-        context 'when no name filter is provided' do
+      parameter name: :per_page,
+                in: :query,
+                required: false,
+                description: 'Number of results per page',
+                schema: {
+                  type: :integer,
+                  default: 10,
+                  example: 10
+                }
+
+      response '200', 'locations found' do
+        schema type: :object,
+               properties: {
+                 locations: {
+                   type: :array,
+                   items: {
+                     '$ref' => '#/components/schemas/Location'
+                   }
+                 },
+                 pagination: {
+                   '$ref' => '#/components/schemas/Pagination'
+                 }
+               },
+               required: %w[locations pagination]
+
+        context 'when no pagination params are provided' do
           let(:factory) do
             RGeo::Geographic.spherical_factory(srid: 4326)
           end
@@ -44,11 +73,83 @@ RSpec.describe 'Locations API', type: :request do
           end
 
           run_test! do |response|
-            locations = JSON.parse(response.body)
+            body = JSON.parse(response.body)
 
-            expect(locations.length).to eq(2)
-            expect(locations.map { |location| location['name'] })
+            expect(body['locations'].length).to eq(2)
+            expect(body['locations'].map { |location| location['name'] })
               .to contain_exactly('Lisboa', 'Porto')
+
+            expect(body['pagination']).to eq(
+              'page' => 1,
+              'per_page' => 10,
+              'total' => 2,
+              'total_pages' => 1
+            )
+          end
+        end
+
+        context 'when pagination params are provided' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
+
+          let!(:locations) do
+            5.times.map do |index|
+              Location.create!(
+                name: "Location #{index + 1}",
+                region: 'Region',
+                location_point: factory.point(-9.0 + index, 38.0 + index)
+              )
+            end
+          end
+
+          let(:page) { 2 }
+          let(:per_page) { 2 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body['locations'].map { |location| location['name'] })
+              .to eq(['Location 3', 'Location 4'])
+
+            expect(body['pagination']).to eq(
+              'page' => 2,
+              'per_page' => 2,
+              'total' => 5,
+              'total_pages' => 3
+            )
+          end
+        end
+
+        context 'when the requested page is beyond the last page' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
+
+          let!(:locations) do
+            3.times.map do |index|
+              Location.create!(
+                name: "Location #{index + 1}",
+                region: 'Region',
+                location_point: factory.point(-9.0 + index, 38.0 + index)
+              )
+            end
+          end
+
+          let(:page) { 5 }
+          let(:per_page) { 2 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body['locations']).to eq([])
+
+            expect(body['pagination']).to eq(
+              'page' => 5,
+              'per_page' => 2,
+              'total' => 3,
+              'total_pages' => 2
+            )
           end
         end
 
@@ -76,10 +177,17 @@ RSpec.describe 'Locations API', type: :request do
           let(:name) { 'Lisboa' }
 
           run_test! do |response|
-            locations = JSON.parse(response.body)
+            body = JSON.parse(response.body)
 
-            expect(locations.length).to eq(1)
-            expect(locations.first['name']).to eq('Lisboa')
+            expect(body['locations'].length).to eq(1)
+            expect(body['locations'].first['name']).to eq('Lisboa')
+
+            expect(body['pagination']).to eq(
+              'page' => 1,
+              'per_page' => 10,
+              'total' => 1,
+              'total_pages' => 1
+            )
           end
         end
       end

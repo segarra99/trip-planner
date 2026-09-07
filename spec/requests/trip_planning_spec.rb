@@ -34,11 +34,42 @@ RSpec.describe 'Trip Planning API', type: :request do
                 description: 'Filter by category ID',
                 schema: { type: :integer, example: 1 }
 
+      parameter name: :page,
+                in: :query,
+                required: false,
+                description: 'Page number',
+                schema: { type: :integer, minimum: 1, example: 1 }
+
+      parameter name: :per_page,
+                in: :query,
+                required: false,
+                description: 'Number of POIs per page',
+                schema: { type: :integer, minimum: 1, example: 10 }
+
       response '200', 'POIs returned' do
-        schema type: :array,
-               items: {
-                 '$ref' => '#/components/schemas/Poi'
-               }
+        schema oneOf: [
+          {
+            type: :array,
+            items: {
+              '$ref' => '#/components/schemas/Poi'
+            }
+          },
+          {
+            type: :object,
+            properties: {
+              pois: {
+                type: :array,
+                items: {
+                  '$ref' => '#/components/schemas/Poi'
+                }
+              },
+              pagination: {
+                '$ref' => '#/components/schemas/Pagination'
+              }
+            },
+            required: %w[pois pagination]
+          }
+        ]
 
         context 'when enough POIs are available' do
           let(:factory) do
@@ -232,6 +263,330 @@ RSpec.describe 'Trip Planning API', type: :request do
 
           run_test! do |response|
             expect(JSON.parse(response.body)).to eq([])
+          end
+        end
+
+        context 'when no pagination params are provided' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
+
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
+
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
+
+          let!(:first_poi) do
+            Poi.create!(
+              name: 'First POI',
+              description: 'First stop',
+              location_point: factory.point(-9.0, 39.5)
+            )
+          end
+
+          let!(:second_poi) do
+            Poi.create!(
+              name: 'Second POI',
+              description: 'Second stop',
+              location_point: factory.point(-8.8, 40.3)
+            )
+          end
+
+          let!(:third_poi) do
+            Poi.create!(
+              name: 'Third POI',
+              description: 'Third stop',
+              location_point: factory.point(-8.7, 40.7)
+            )
+          end
+
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 5 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body).to be_an(Array)
+            expect(body.length).to eq(3)
+            expect(body.map { |poi| poi['id'] }).to eq(
+              [first_poi.id, second_poi.id, third_poi.id]
+            )
+          end
+        end
+
+        context 'when page and per_page are provided' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
+
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
+
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
+
+          let!(:first_poi) do
+            Poi.create!(
+              name: 'First POI',
+              description: 'First stop',
+              location_point: factory.point(-9.0, 39.5)
+            )
+          end
+
+          let!(:second_poi) do
+            Poi.create!(
+              name: 'Second POI',
+              description: 'Second stop',
+              location_point: factory.point(-8.8, 40.3)
+            )
+          end
+
+          let!(:third_poi) do
+            Poi.create!(
+              name: 'Third POI',
+              description: 'Third stop',
+              location_point: factory.point(-8.7, 40.7)
+            )
+          end
+
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 5 }
+          let(:page) { 2 }
+          let(:per_page) { 2 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body['pois'].map { |poi| poi['id'] }).to eq(
+              [third_poi.id]
+            )
+
+            expect(body['pagination']).to eq(
+              'page' => 2,
+              'per_page' => 2,
+              'total' => 3,
+              'total_pages' => 2
+            )
+          end
+        end
+
+        context 'when only page is provided' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
+
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
+
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
+
+          let!(:first_poi) do
+            Poi.create!(
+              name: 'First POI',
+              description: 'First stop',
+              location_point: factory.point(-9.0, 39.5)
+            )
+          end
+
+          let!(:second_poi) do
+            Poi.create!(
+              name: 'Second POI',
+              description: 'Second stop',
+              location_point: factory.point(-8.8, 40.3)
+            )
+          end
+
+          let!(:third_poi) do
+            Poi.create!(
+              name: 'Third POI',
+              description: 'Third stop',
+              location_point: factory.point(-8.7, 40.7)
+            )
+          end
+
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 5 }
+          let(:page) { 1 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body['pois'].map { |poi| poi['id'] }).to eq(
+              [first_poi.id, second_poi.id, third_poi.id]
+            )
+
+            expect(body['pagination']).to eq(
+              'page' => 1,
+              'per_page' => 10,
+              'total' => 3,
+              'total_pages' => 1
+            )
+          end
+        end
+
+        context 'when only per_page is provided' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
+
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
+
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
+
+          let!(:first_poi) do
+            Poi.create!(
+              name: 'First POI',
+              description: 'First stop',
+              location_point: factory.point(-9.0, 39.5)
+            )
+          end
+
+          let!(:second_poi) do
+            Poi.create!(
+              name: 'Second POI',
+              description: 'Second stop',
+              location_point: factory.point(-8.8, 40.3)
+            )
+          end
+
+          let!(:third_poi) do
+            Poi.create!(
+              name: 'Third POI',
+              description: 'Third stop',
+              location_point: factory.point(-8.7, 40.7)
+            )
+          end
+
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 5 }
+          let(:per_page) { 2 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body['pois'].map { |poi| poi['id'] }).to eq(
+              [first_poi.id, second_poi.id]
+            )
+
+            expect(body['pagination']).to eq(
+              'page' => 1,
+              'per_page' => 2,
+              'total' => 3,
+              'total_pages' => 2
+            )
+          end
+        end
+
+        context 'when the requested page is beyond the last page' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
+
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
+
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
+
+          let!(:first_poi) do
+            Poi.create!(
+              name: 'First POI',
+              description: 'First stop',
+              location_point: factory.point(-9.0, 39.5)
+            )
+          end
+
+          let!(:second_poi) do
+            Poi.create!(
+              name: 'Second POI',
+              description: 'Second stop',
+              location_point: factory.point(-8.8, 40.3)
+            )
+          end
+
+          let!(:third_poi) do
+            Poi.create!(
+              name: 'Third POI',
+              description: 'Third stop',
+              location_point: factory.point(-8.7, 40.7)
+            )
+          end
+
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 5 }
+          let(:page) { 3 }
+          let(:per_page) { 2 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+
+            expect(body['pois']).to eq([])
+
+            expect(body['pagination']).to eq(
+              'page' => 3,
+              'per_page' => 2,
+              'total' => 3,
+              'total_pages' => 2
+            )
           end
         end
       end
