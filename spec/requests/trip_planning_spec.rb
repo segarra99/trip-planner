@@ -207,23 +207,15 @@ RSpec.describe 'Trip Planning API', type: :request do
         origin: 1,
         destination: 2,
         number_of_pois: 2,
-        category: 999999
+        category: 999_999
       }
 
       expect(response).to have_http_status(:not_found)
     end
 
     it 'returns 400 when origin is missing' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
-
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
-
       get '/trip-planning', params: {
-        destination: destination.id,
+        destination: 1,
         number_of_pois: 2
       }
 
@@ -231,16 +223,8 @@ RSpec.describe 'Trip Planning API', type: :request do
     end
 
     it 'returns 400 when destination is missing' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
-
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
-
       get '/trip-planning', params: {
-        origin: origin.id,
+        origin: 1,
         number_of_pois: 2
       }
 
@@ -248,23 +232,19 @@ RSpec.describe 'Trip Planning API', type: :request do
     end
 
     it 'returns 400 when number_of_pois is missing' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
-
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
-
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
-
       get '/trip-planning', params: {
-        origin: origin.id,
-        destination: destination.id
+        origin: 1,
+        destination: 2
+      }
+
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it 'returns 400 when number_of_pois is not a positive integer' do
+      get '/trip-planning', params: {
+        origin: 1,
+        destination: 2,
+        number_of_pois: 0
       }
 
       expect(response).to have_http_status(:bad_request)
