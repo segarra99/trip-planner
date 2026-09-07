@@ -489,8 +489,38 @@ The workflow definition lives at `.github/workflows/ci.yml`.
 
 To reproduce the CI pipeline on your machine before pushing:
 
-\`\`\`bash
+```bash
 docker compose build test
 docker compose --profile test run --rm --no-deps test bundle exec rubocop
 docker compose --profile test run --rm test
-\`\`\`
+```
+
+### Frontend
+
+Since the frontend is a bonus, I wanted to keep it simple and avoid adding unnecessary infrastructure.
+
+I considered two options:
+
+- **Option 1: Separate frontend application**
+
+    This could use React and communicate with the Rails API, but would add another application, dependencies, build system and Docker service.
+
+- **Option 2: Rails-based frontend**
+
+    Rails can render the frontend using its existing view layer, keeping everything in one application.
+
+**I opted for option 2** because I want to learn a different skill, and I'm already familiar with JavaScript frontend frameworks. It is also enough for the scope of the bonus.
+
+I then considered two ways for the frontend to get data:
+
+- **Option 1: Use a Rails controller directly**
+
+    The controller could access the models and services and pass the data to the view.
+
+- **Option 2: Consume the existing REST API**
+
+    The frontend can call the existing API endpoints and use their responses.
+
+**I opted for option 2** because the API already provides the functionality the frontend needs, so there is no need to duplicate it in another controller. It also means the frontend uses the same interface that any other client would use.
+
+The frontend will only use the endpoints it needs, such as `/locations`, `/categories` and `/trip-planning`. Endpoints such as `/pois/nearest` remain available as API functionality but are not needed for the frontend.
