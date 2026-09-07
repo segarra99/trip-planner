@@ -1,0 +1,22 @@
+name: CI
+
+on:
+    push:
+    pull_request:
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Build Docker image
+              run: docker compose build test
+
+            - name: Run RuboCop
+              run: docker compose --profile test run --rm --no-deps test bundle exec rubocop
+
+            - name: Run tests
+              run: docker compose --profile test run --rm test
