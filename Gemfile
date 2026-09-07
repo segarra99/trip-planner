@@ -44,3 +44,4 @@ end
 
 # Add any additional gems you find useful below this line
 # For example, you might want to add API documentation gems
+gem 'csv'
