@@ -19,8 +19,8 @@ class PoisController < ApplicationController
     point_sql = ApplicationRecord.sanitize_sql_array(
       [
         'ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography',
-        params[:lng].to_f,
-        params[:lat].to_f
+        Float(params[:lng]),
+        Float(params[:lat])
       ]
     )
 
@@ -36,13 +36,10 @@ class PoisController < ApplicationController
   private
 
   def validate_coordinates
-    lat = params[:lat].to_f
-    lng = params[:lng].to_f
+    lat = Float(params[:lat], exception: false)
+    lng = Float(params[:lng], exception: false)
 
-    return if params[:lat].present? &&
-              params[:lng].present? &&
-              lat.between?(-90, 90) &&
-              lng.between?(-180, 180)
+    return if lat && lng && lat.between?(-90, 90) && lng.between?(-180, 180)
 
     render json: { error: 'valid lat and lng are required' }, status: :bad_request
   end
