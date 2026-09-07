@@ -2,11 +2,11 @@ require 'csv'
 
 # Expected columns in each CSV file.
 # These are used to validate the CSV structure before importing.
-LOCATION_HEADERS = %w[name region lat lng].freeze
-POI_HEADERS = %w[name description lat lng categories].freeze
+LOCATION_HEADERS = %w[name region lat lng].freeze unless defined?(LOCATION_HEADERS)
+POI_HEADERS = %w[name description lat lng categories].freeze unless defined?(POI_HEADERS)
 
 # Creates PostGIS points
-POINT_FACTORY = RGeo::Geographic.spherical_factory(srid: 4326)
+POINT_FACTORY = RGeo::Geographic.spherical_factory(srid: 4326) unless defined?(POINT_FACTORY)
 
 # Reads a CSV file and validates that it has the expected columns.
 def csv_rows(filename, expected_headers)
