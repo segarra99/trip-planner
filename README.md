@@ -456,3 +456,21 @@ For the implementation, there are also two options:
 **I will use Option 1** because the logic is simple: validate the coordinates and run a single PostGIS query. A service would be a bit overkill for this operation.
 
 The distance will be calculated using PostGIS rather than in Ruby.
+
+### Pagination
+
+I added pagination to `/locations`, `/categories` and `/pois` since these are collection endpoints and could contain a large number of records. These endpoints are paginated by default, using a default page and page size.
+
+For `/trip-planning`, I considered 2 options:
+
+- **Option 1: Do not paginate**
+
+    This keeps the endpoint simple and allows the frontend to receive all the POIs selected for the trip in a single response.
+
+- **Option 2: Paginate**
+
+    This would make the endpoint behave more like the other collection endpoints, but could require multiple requests when the frontend needs all the POIs for the map.
+
+**I decided to use a middle ground:** `/trip-planning` is not paginated by default, but supports pagination when `page` or `per_page` is provided. This allows the map to receive all selected POIs by default, while still supporting paginated results when needed.
+
+I'll be applying the pagination in Ruby after the trip-planning query has selected and ordered the POIs. This keeps the route selection and ordering deterministic before pagination is applied.
