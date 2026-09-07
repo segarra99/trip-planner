@@ -1,4 +1,4 @@
-class LocationsController < ActionController::API
+class LocationsController < ApplicationController
   def index
     locations = Location.all
     locations = locations.name_matches(params[:name]) if params[:name].present?

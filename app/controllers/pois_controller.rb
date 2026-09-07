@@ -1,4 +1,4 @@
-class PoisController < ActionController::API
+class PoisController < ApplicationController
   before_action :validate_coordinates, only: :nearest
 
   def index
