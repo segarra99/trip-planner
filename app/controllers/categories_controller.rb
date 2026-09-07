@@ -3,8 +3,7 @@
 class CategoriesController < ApplicationController
   def index
     total = Category.count
-    page = params.fetch(:page, DEFAULT_PAGE).to_i
-    per_page = params.fetch(:per_page, DEFAULT_PER_PAGE).to_i
+    page, per_page = pagination_params
 
     categories = Category
                  .order(:id)
@@ -13,13 +12,7 @@ class CategoriesController < ApplicationController
 
     render json: {
       categories: categories,
-      pagination: {
-        page: page,
-        per_page: per_page,
-        total: total,
-        total_pages: (total.to_f / per_page).ceil
-      }
+      pagination: pagination_metadata(page, per_page, total)
     }
   end
-
 end

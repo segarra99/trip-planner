@@ -15,38 +15,36 @@ class TripPlanningController < ApplicationController
       category: category
     )
 
-    if params[:page].present? || params[:per_page].present?
-      page = params.fetch(:page, DEFAULT_PAGE).to_i
-      per_page = params.fetch(:per_page, DEFAULT_PER_PAGE).to_i
+    return render_paginated(pois) if pagination_requested?
 
-      total = pois.length
-      pois = pois
-            .drop((page - 1) * per_page)
-            .first(per_page)
-
-      render json: {
-        pois: pois.as_json(
-          except: :location_point,
-          methods: %i[latitude longitude],
-          include: :categories
-        ),
-        pagination: {
-          page: page,
-          per_page: per_page,
-          total: total,
-          total_pages: (total.to_f / per_page).ceil
-        }
-      }
-    else
-      render json: pois.as_json(
-        except: :location_point,
-        methods: %i[latitude longitude],
-        include: :categories
-      )
-    end
+    render json: pois_json(pois)
   end
 
   private
+
+  def pagination_requested?
+    params[:page].present? || params[:per_page].present?
+  end
+
+  def render_paginated(pois)
+    page, per_page = pagination_params
+    total = pois.length
+
+    pois = pois.drop((page - 1) * per_page).first(per_page)
+
+    render json: {
+      pois: pois_json(pois),
+      pagination: pagination_metadata(page, per_page, total)
+    }
+  end
+
+  def pois_json(pois)
+    pois.as_json(
+      except: :location_point,
+      methods: %i[latitude longitude],
+      include: :categories
+    )
+  end
 
   def validate_params
     required_params = %i[origin destination number_of_pois]

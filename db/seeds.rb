@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'csv'
 
 # Expected columns in each CSV file.
@@ -54,7 +56,6 @@ ApplicationRecord.transaction do
                    .map(&:strip)
                    .reject(&:empty?)
                    .uniq
-
 
   # Import categories in bulk.
   # The unique index on name prevents duplicate categories.

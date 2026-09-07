@@ -9,8 +9,7 @@ class PoisController < ApplicationController
     pois = pois.with_category(params[:category]) if params[:category].present?
 
     total = pois.count
-    page = params.fetch(:page, DEFAULT_PAGE).to_i
-    per_page = params.fetch(:per_page, DEFAULT_PER_PAGE).to_i
+    page, per_page = pagination_params
 
     pois = pois
            .order(:id)
@@ -23,12 +22,7 @@ class PoisController < ApplicationController
         methods: %i[latitude longitude],
         include: :categories
       ),
-      pagination: {
-        page: page,
-        per_page: per_page,
-        total: total,
-        total_pages: (total.to_f / per_page).ceil
-      }
+      pagination: pagination_metadata(page, per_page, total)
     }
   end
 
