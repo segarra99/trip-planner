@@ -67,6 +67,18 @@ RSpec.configure do |config|
                 type: :string,
                 example: 'Lisbon'
               },
+              latitude: {
+                type: :number,
+                minimum: -90,
+                maximum: 90,
+                example: 38.7223
+              },
+              longitude: {
+                type: :number,
+                minimum: -180,
+                maximum: 180,
+                example: -9.1393
+              },
               created_at: {
                 type: :string,
                 format: :'date-time'
