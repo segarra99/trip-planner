@@ -1,78 +1,140 @@
-require 'rails_helper'
+require 'swagger_helper'
 
 RSpec.describe 'Locations API', type: :request do
-  describe 'GET /locations' do
-    it 'returns all locations' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+  path '/locations' do
+    get 'List locations' do
+      tags 'Locations'
+      produces 'application/json'
+      description 'Returns all locations, optionally filtered by name.'
 
-      Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
+      parameter name: :name,
+                in: :query,
+                required: false,
+                description: 'Filter by location name',
+                schema: {
+                  type: :string,
+                  example: 'Lisboa'
+                }
 
-      get '/locations'
+      response '200', 'locations found' do
+        schema type: :array,
+               items: {
+                 '$ref' => '#/components/schemas/Location'
+               }
 
-      expect(response).to have_http_status(:ok)
+        context 'when no name filter is provided' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
 
-      locations = JSON.parse(response.body)
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
 
-      expect(locations.length).to eq(1)
-      expect(locations.first['name']).to eq('Lisboa')
-      expect(locations.first['region']).to eq('Lisboa')
-    end
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
 
-    it 'filters locations by name' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+          run_test! do |response|
+            locations = JSON.parse(response.body)
 
-      Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
+            expect(locations.length).to eq(2)
+            expect(locations.map { |location| location['name'] })
+              .to contain_exactly('Lisboa', 'Porto')
+          end
+        end
 
-      Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
+        context 'when filtering by name' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
 
-      get '/locations', params: { name: 'Lisboa' }
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
 
-      expect(response).to have_http_status(:ok)
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
 
-      locations = JSON.parse(response.body)
+          let(:name) { 'Lisboa' }
 
-      expect(locations.length).to eq(1)
-      expect(locations.first['name']).to eq('Lisboa')
+          run_test! do |response|
+            locations = JSON.parse(response.body)
+
+            expect(locations.length).to eq(1)
+            expect(locations.first['name']).to eq('Lisboa')
+          end
+        end
+      end
     end
   end
 
-  describe 'GET /locations/:id' do
-    it 'returns the requested location' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+  path '/locations/{id}' do
+    get 'Retrieve a location' do
+      tags 'Locations'
+      produces 'application/json'
+      description 'Returns a single location by ID.'
 
-      location = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
+      parameter name: :id,
+                in: :path,
+                required: true,
+                schema: {
+                  type: :integer,
+                  example: 1
+                }
 
-      get "/locations/#{location.id}"
+      response '200', 'location found' do
+        schema '$ref' => '#/components/schemas/Location'
 
-      expect(response).to have_http_status(:ok)
+        context 'when location exists' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
 
-      body = JSON.parse(response.body)
+          let(:id) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            ).id
+          end
 
-      expect(body['id']).to eq(location.id)
-      expect(body['name']).to eq('Lisboa')
-      expect(body['region']).to eq('Lisboa')
-    end
+          run_test! do |response|
+            body = JSON.parse(response.body)
 
-    it 'returns 404 when the location does not exist' do
-      get '/locations/999999'
+            expect(body['id']).to eq(id)
+            expect(body['name']).to eq('Lisboa')
+            expect(body['region']).to eq('Lisboa')
+          end
+        end
+      end
 
-      expect(response).to have_http_status(:not_found)
+      response '404', 'location not found' do
+        schema '$ref' => '#/components/schemas/Error'
+
+        context 'when location does not exist' do
+          let(:id) { 999_999 }
+
+          run_test!
+        end
+      end
     end
   end
 end

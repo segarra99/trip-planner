@@ -1,22 +1,33 @@
-require 'rails_helper'
+require 'swagger_helper'
 
 RSpec.describe 'Categories API', type: :request do
-  describe 'GET /categories' do
-    it 'returns all categories' do
-      Category.create!(name: 'Beach')
-      Category.create!(name: 'Museum')
+  path '/categories' do
+    get 'List categories' do
+      tags 'Categories'
+      produces 'application/json'
+      description 'Returns all available categories.'
 
-      get '/categories'
+      response '200', 'categories found' do
+        schema type: :array,
+               items: {
+                 '$ref' => '#/components/schemas/Category'
+               }
 
-      expect(response).to have_http_status(:ok)
+        before do
+          Category.create!(name: 'Beach')
+          Category.create!(name: 'Museum')
+        end
 
-      categories = JSON.parse(response.body)
+        run_test! do |response|
+          categories = JSON.parse(response.body)
 
-      expect(categories.length).to eq(2)
-      expect(categories.map { |category| category['name'] }).to contain_exactly(
-        'Beach',
-        'Museum'
-      )
+          expect(categories.length).to eq(2)
+          expect(categories.map { |category| category['name'] }).to contain_exactly(
+            'Beach',
+            'Museum'
+          )
+        end
+      end
     end
   end
 end

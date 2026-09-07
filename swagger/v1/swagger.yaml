@@ -3,6 +3,311 @@ openapi: 3.0.1
 info:
   title: API V1
   version: v1
-paths: {}
+paths:
+  "/categories":
+    get:
+      summary: List categories
+      tags:
+      - Categories
+      description: Returns all available categories.
+      responses:
+        '200':
+          description: categories found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Category"
+  "/locations":
+    get:
+      summary: List locations
+      tags:
+      - Locations
+      description: Returns all locations, optionally filtered by name.
+      parameters:
+      - name: name
+        in: query
+        required: false
+        description: Filter by location name
+        schema:
+          type: string
+          example: Lisboa
+      responses:
+        '200':
+          description: locations found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Location"
+  "/locations/{id}":
+    get:
+      summary: Retrieve a location
+      tags:
+      - Locations
+      description: Returns a single location by ID.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+      responses:
+        '200':
+          description: location found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Location"
+        '404':
+          description: location not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/pois":
+    get:
+      summary: List POIs
+      tags:
+      - POIs
+      description: Returns all points of interest, optionally filtered by name or
+        category.
+      parameters:
+      - name: name
+        in: query
+        required: false
+        description: Filter by point of interest name
+        schema:
+          type: string
+          example: Praia da Ursa
+      - name: category
+        in: query
+        required: false
+        description: Filter by category ID
+        schema:
+          type: integer
+          example: 1
+      responses:
+        '200':
+          description: POIs found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Poi"
+  "/pois/{id}":
+    get:
+      summary: Retrieve a POI
+      tags:
+      - POIs
+      description: Returns a single point of interest by ID.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+      responses:
+        '200':
+          description: POI found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Poi"
+        '404':
+          description: POI not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/pois/nearest":
+    get:
+      summary: Find nearest POI
+      tags:
+      - POIs
+      description: Returns the point of interest nearest to the supplied coordinates.
+      parameters:
+      - name: lat
+        in: query
+        required: true
+        schema:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          example: 38.7223
+      - name: lng
+        in: query
+        required: true
+        schema:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          example: -9.1393
+      responses:
+        '200':
+          description: nearest POI found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Poi"
+        '400':
+          description: invalid request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/trip-planning":
+    get:
+      summary: Plan a trip
+      tags:
+      - Trip Planning
+      parameters:
+      - name: origin
+        in: query
+        required: true
+        description: Location ID
+        schema:
+          type: integer
+          example: 1
+      - name: destination
+        in: query
+        required: true
+        description: Location ID
+        schema:
+          type: integer
+          example: 2
+      - name: number_of_pois
+        in: query
+        required: true
+        description: Number of points of interest
+        schema:
+          type: integer
+          minimum: 1
+          example: 3
+      - name: category
+        in: query
+        required: false
+        description: Filter by category ID
+        schema:
+          type: integer
+          example: 1
+      responses:
+        '200':
+          description: POIs returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Poi"
+        '404':
+          description: resource not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '400':
+          description: invalid request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
 servers:
 - url: http://localhost:3000
+components:
+  schemas:
+    Category:
+      type: object
+      description: A category used to classify points of interest.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: Beach
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+    Location:
+      type: object
+      description: A geographical location.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: Lisbon
+        region:
+          type: string
+          example: Lisbon
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - region
+    Poi:
+      type: object
+      description: A point of interest with its associated categories.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: Belém Tower
+        description:
+          type: string
+          example: A historic fortified tower on the Tagus River.
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+          example: 38.6916
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+          example: -9.216
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        categories:
+          type: array
+          items:
+            "$ref": "#/components/schemas/Category"
+      required:
+      - id
+      - name
+      - description
+      - latitude
+      - longitude
+      - categories
+    Error:
+      type: object
+      description: An error response.
+      properties:
+        error:
+          type: string
+          example: bad request / not found
+      required:
+      - error

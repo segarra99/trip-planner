@@ -1,253 +1,337 @@
-require 'rails_helper'
+require 'swagger_helper'
 
 RSpec.describe 'Trip Planning API', type: :request do
-  describe 'GET /trip-planning' do
-    it 'returns the desired number of POIs along the route in order' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+  path '/trip-planning' do
+    get 'Plan a trip' do
+      tags 'Trip Planning'
+      produces 'application/json'
 
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
+      parameter name: :origin,
+                in: :query,
+                required: true,
+                description: 'Location ID',
+                schema: { type: :integer, example: 1 }
 
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
+      parameter name: :destination,
+                in: :query,
+                required: true,
+                description: 'Location ID',
+                schema: { type: :integer, example: 2 }
 
-      first_poi = Poi.create!(
-        name: 'First POI',
-        description: 'First stop',
-        location_point: factory.point(-9.0, 39.5)
-      )
+      parameter name: :number_of_pois,
+                in: :query,
+                required: true,
+                description: 'Number of points of interest',
+                schema: {
+                  type: :integer,
+                  minimum: 1,
+                  example: 3
+                }
 
-      Poi.create!(
-        name: 'Second POI',
-        description: 'Second stop',
-        location_point: factory.point(-8.8, 40.3)
-      )
+      parameter name: :category,
+                in: :query,
+                required: false,
+                description: 'Filter by category ID',
+                schema: { type: :integer, example: 1 }
 
-      third_poi = Poi.create!(
-        name: 'Third POI',
-        description: 'Third stop',
-        location_point: factory.point(-8.7, 40.7)
-      )
+      response '200', 'POIs returned' do
+        schema type: :array,
+               items: {
+                 '$ref' => '#/components/schemas/Poi'
+               }
 
-      get '/trip-planning', params: {
-        origin: origin.id,
-        destination: destination.id,
-        number_of_pois: 2
-      }
+        context 'when enough POIs are available' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
 
-      expect(response).to have_http_status(:ok)
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
 
-      pois = JSON.parse(response.body)
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
 
-      expect(pois.length).to eq(2)
-      expect(pois.map { |poi| poi['id'] }).to eq([
-                                                   first_poi.id,
-                                                   third_poi.id
-                                                 ])
-    end
+          let!(:first_poi) do
+            Poi.create!(
+              name: 'First POI',
+              description: 'First stop',
+              location_point: factory.point(-9.0, 39.5)
+            )
+          end
 
-    it 'returns fewer POIs when fewer are available along the route' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+          let!(:second_poi) do
+            Poi.create!(
+              name: 'Second POI',
+              description: 'Second stop',
+              location_point: factory.point(-8.8, 40.3)
+            )
+          end
 
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
+          let!(:third_poi) do
+            Poi.create!(
+              name: 'Third POI',
+              description: 'Third stop',
+              location_point: factory.point(-8.7, 40.7)
+            )
+          end
 
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 2 }
 
-      poi = Poi.create!(
-        name: 'Only POI',
-        description: 'Only stop',
-        location_point: factory.point(-9.0, 39.5)
-      )
+          run_test! do |response|
+            pois = JSON.parse(response.body)
 
-      get '/trip-planning', params: {
-        origin: origin.id,
-        destination: destination.id,
-        number_of_pois: 3
-      }
+            expect(pois.length).to eq(2)
+            expect(pois.map { |poi| poi['id'] }).to eq(
+              [first_poi.id, third_poi.id]
+            )
+          end
+        end
 
-      expect(response).to have_http_status(:ok)
+        context 'when fewer POIs are available' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
 
-      pois = JSON.parse(response.body)
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
 
-      expect(pois.length).to eq(1)
-      expect(pois.first['id']).to eq(poi.id)
-    end
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
 
-    it 'filters POIs by category' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+          let!(:only_poi) do
+            Poi.create!(
+              name: 'Only POI',
+              description: 'Only stop',
+              location_point: factory.point(-9.0, 39.5)
+            )
+          end
 
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 3 }
 
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
+          run_test! do |response|
+            pois = JSON.parse(response.body)
 
-      beach = Category.create!(name: 'Beach')
-      museum = Category.create!(name: 'Museum')
+            expect(pois.length).to eq(1)
+            expect(pois.first['name']).to eq('Only POI')
+          end
+        end
 
-      beach_poi = Poi.create!(
-        name: 'Beach POI',
-        description: 'A beach',
-        location_point: factory.point(-9.0, 39.5)
-      )
-      beach_poi.categories << beach
+        context 'when filtering by category' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
 
-      museum_poi = Poi.create!(
-        name: 'Museum POI',
-        description: 'A museum',
-        location_point: factory.point(-8.8, 40.3)
-      )
-      museum_poi.categories << museum
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
 
-      get '/trip-planning', params: {
-        origin: origin.id,
-        destination: destination.id,
-        number_of_pois: 2,
-        category: beach.id
-      }
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
 
-      expect(response).to have_http_status(:ok)
+          let!(:beach) { Category.create!(name: 'Beach') }
+          let!(:museum) { Category.create!(name: 'Museum') }
 
-      pois = JSON.parse(response.body)
+          let!(:beach_poi) do
+            poi = Poi.create!(
+              name: 'Beach POI',
+              description: 'A beach',
+              location_point: factory.point(-9.0, 39.5)
+            )
+            poi.categories << beach
+            poi
+          end
 
-      expect(pois.length).to eq(1)
-      expect(pois.first['id']).to eq(beach_poi.id)
-    end
+          let!(:museum_poi) do
+            poi = Poi.create!(
+              name: 'Museum POI',
+              description: 'A museum',
+              location_point: factory.point(-8.8, 40.3)
+            )
+            poi.categories << museum
+            poi
+          end
 
-    it 'returns an empty array when no POIs match the route' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 2 }
+          let(:category) { beach.id }
 
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
+          run_test! do |response|
+            pois = JSON.parse(response.body)
 
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
+            expect(pois.length).to eq(1)
+            expect(pois.first['id']).to eq(beach_poi.id)
+          end
+        end
 
-      Poi.create!(
-        name: 'Far POI',
-        description: 'Not along the route',
-        location_point: factory.point(-3.0, 45.0)
-      )
+        context 'when no POIs match the route' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
 
-      get '/trip-planning', params: {
-        origin: origin.id,
-        destination: destination.id,
-        number_of_pois: 2
-      }
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
 
-      expect(response).to have_http_status(:ok)
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
 
-      expect(JSON.parse(response.body)).to eq([])
-    end
+          let!(:far_poi) do
+            Poi.create!(
+              name: 'Far POI',
+              description: 'Not along the route',
+              location_point: factory.point(-3.0, 45.0)
+            )
+          end
 
-    it 'returns 404 when the origin does not exist' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 2 }
 
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
+          run_test! do |response|
+            expect(JSON.parse(response.body)).to eq([])
+          end
+        end
+      end
 
-      get '/trip-planning', params: {
-        origin: 999_999,
-        destination: destination.id,
-        number_of_pois: 2
-      }
+      response '404', 'resource not found' do
+        schema '$ref' => '#/components/schemas/Error'
 
-      expect(response).to have_http_status(:not_found)
-    end
+        context 'when origin is not found' do
+          let(:origin) { 999_999 }
+          let(:destination) { 999_998 }
+          let(:number_of_pois) { 2 }
 
-    it 'returns 404 when the destination does not exist' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+          run_test!
+        end
 
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
+        context 'when destination is not found' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
 
-      get '/trip-planning', params: {
-        origin: origin.id,
-        destination: 999_999,
-        number_of_pois: 2
-      }
+          let!(:origin_location) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
 
-      expect(response).to have_http_status(:not_found)
-    end
+          let(:origin) { origin_location.id }
+          let(:destination) { 999_999 }
+          let(:number_of_pois) { 2 }
 
-    it 'returns 404 when the category does not exist' do
-      get '/trip-planning', params: {
-        origin: 1,
-        destination: 2,
-        number_of_pois: 2,
-        category: 999_999
-      }
+          run_test!
+        end
 
-      expect(response).to have_http_status(:not_found)
-    end
+        context 'when category is not found' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
 
-    it 'returns 400 when origin is missing' do
-      get '/trip-planning', params: {
-        destination: 1,
-        number_of_pois: 2
-      }
+          let!(:origin_location) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
 
-      expect(response).to have_http_status(:bad_request)
-    end
+          let!(:destination_location) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
 
-    it 'returns 400 when destination is missing' do
-      get '/trip-planning', params: {
-        origin: 1,
-        number_of_pois: 2
-      }
+          let(:origin) { origin_location.id }
+          let(:destination) { destination_location.id }
+          let(:number_of_pois) { 2 }
+          let(:category) { 999_999 }
 
-      expect(response).to have_http_status(:bad_request)
-    end
+          run_test!
+        end
+      end
 
-    it 'returns 400 when number_of_pois is missing' do
-      get '/trip-planning', params: {
-        origin: 1,
-        destination: 2
-      }
+      response '400', 'invalid request' do
+        schema '$ref' => '#/components/schemas/Error'
 
-      expect(response).to have_http_status(:bad_request)
-    end
+        context 'when origin is missing' do
+          let(:origin) { nil }
+          let(:destination) { 1 }
+          let(:number_of_pois) { 2 }
 
-    it 'returns 400 when number_of_pois is not a positive integer' do
-      get '/trip-planning', params: {
-        origin: 1,
-        destination: 2,
-        number_of_pois: 0
-      }
+          run_test!
+        end
 
-      expect(response).to have_http_status(:bad_request)
+        context 'when destination is missing' do
+          let(:origin) { 1 }
+          let(:destination) { nil }
+          let(:number_of_pois) { 2 }
+
+          run_test!
+        end
+
+        context 'when number_of_pois is missing' do
+          let(:origin) { 1 }
+          let(:destination) { 2 }
+          let(:number_of_pois) { nil }
+
+          run_test!
+        end
+
+        context 'when number_of_pois is not a positive integer' do
+          let(:origin) { 1 }
+          let(:destination) { 2 }
+          let(:number_of_pois) { 0 }
+
+          run_test!
+        end
+      end
     end
   end
 end

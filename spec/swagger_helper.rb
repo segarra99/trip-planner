@@ -26,7 +26,124 @@ RSpec.configure do |config|
         {
           url: 'http://localhost:3000'
         }
-      ]
+      ],
+      components: {
+        schemas: {
+          Category: {
+            type: :object,
+            description: 'A category used to classify points of interest.',
+            properties: {
+              id: {
+                type: :integer
+              },
+              name: {
+                type: :string,
+                example: 'Beach'
+              },
+              created_at: {
+                type: :string,
+                format: :'date-time'
+              },
+              updated_at: {
+                type: :string,
+                format: :'date-time'
+              }
+            },
+            required: %w[id name]
+          },
+
+          Location: {
+            type: :object,
+            description: 'A geographical location.',
+            properties: {
+              id: {
+                type: :integer
+              },
+              name: {
+                type: :string,
+                example: 'Lisbon'
+              },
+              region: {
+                type: :string,
+                example: 'Lisbon'
+              },
+              created_at: {
+                type: :string,
+                format: :'date-time'
+              },
+              updated_at: {
+                type: :string,
+                format: :'date-time'
+              }
+            },
+            required: %w[id name region]
+          },
+
+          Poi: {
+            type: :object,
+            description: 'A point of interest with its associated categories.',
+            properties: {
+              id: {
+                type: :integer
+              },
+              name: {
+                type: :string,
+                example: 'Belém Tower'
+              },
+              description: {
+                type: :string,
+                example: 'A historic fortified tower on the Tagus River.'
+              },
+              latitude: {
+                type: :number,
+                minimum: -90,
+                maximum: 90,
+                example: 38.6916
+              },
+              longitude: {
+                type: :number,
+                minimum: -180,
+                maximum: 180,
+                example: -9.216
+              },
+              created_at: {
+                type: :string,
+                format: :'date-time'
+              },
+              updated_at: {
+                type: :string,
+                format: :'date-time'
+              },
+              categories: {
+                type: :array,
+                items: {
+                  '$ref' => '#/components/schemas/Category'
+                }
+              }
+            },
+            required: %w[
+              id
+              name
+              description
+              latitude
+              longitude
+              categories
+            ]
+          },
+
+          Error: {
+            type: :object,
+            description: 'An error response.',
+            properties: {
+              error: {
+                type: :string,
+                example: 'bad request / not found'
+              }
+            },
+            required: ['error']
+          }
+        }
+      }
     }
   }
 
