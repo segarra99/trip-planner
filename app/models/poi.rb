@@ -4,4 +4,12 @@ class Poi < ApplicationRecord
 
   scope :name_matches, ->(name) { where('pois.name ILIKE ?', "%#{name}%") }
   scope :with_category, ->(category_id) { joins(:categories).where(categories: { id: category_id }) }
+
+  def latitude
+    location_point&.y
+  end
+
+  def longitude
+    location_point&.x
+  end
 end

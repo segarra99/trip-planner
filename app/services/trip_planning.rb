@@ -12,15 +12,16 @@ class TripPlanning
   # Returns all POIs within the threshold of the straight line between origin and destination.
   def self.pois_along_route(origin, destination)
     Poi
-      .select(
-        'pois.*',
-        "#{route_position_sql(origin, destination)} AS route_position"
-      )
+      .includes(:categories)
       .where(
         route_distance_sql(origin, destination),
         ROUTE_THRESHOLD_METERS
       )
-      .order(Arel.sql('route_position ASC, pois.id ASC'))
+      .order(
+        Arel.sql(
+          "#{route_position_sql(origin, destination)} ASC, pois.id ASC"
+        )
+      )
   end
 
   # Select a subset of POIs at even intervals along the route.

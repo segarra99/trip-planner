@@ -13,7 +13,11 @@ class TripPlanningController < ApplicationController
       category: category
     )
 
-    render json: pois
+    render json: pois.as_json(
+      except: :location_point,
+      methods: %i[latitude longitude],
+      include: :categories
+    )
   end
 
   private

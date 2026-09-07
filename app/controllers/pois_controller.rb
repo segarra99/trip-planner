@@ -6,13 +6,21 @@ class PoisController < ApplicationController
     pois = pois.name_matches(params[:name]) if params[:name].present?
     pois = pois.with_category(params[:category]) if params[:category].present?
 
-    render json: pois.as_json(include: :categories)
+    render json: pois.as_json(
+      except: :location_point,
+      methods: %i[latitude longitude],
+      include: :categories
+    )
   end
 
   def show
     poi = Poi.find(params[:id])
 
-    render json: poi.as_json(include: :categories)
+    render json: poi.as_json(
+      except: :location_point,
+      methods: %i[latitude longitude],
+      include: :categories
+    )
   end
 
   def nearest
@@ -30,7 +38,11 @@ class PoisController < ApplicationController
           )
           .first
 
-    render json: poi
+    render json: poi.as_json(
+      except: :location_point,
+      methods: %i[latitude longitude],
+      include: :categories
+    )
   end
 
   private
