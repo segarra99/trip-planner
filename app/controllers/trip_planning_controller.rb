@@ -21,9 +21,16 @@ class TripPlanningController < ApplicationController
   def validate_params
     required_params = %i[origin destination number_of_pois]
 
-    return if required_params.all? { |param| params[param].present? }
+    unless required_params.all? { |param| params[param].present? }
+      return render json: { error: 'origin, destination and number of pois are required' },
+                    status: :bad_request
+    end
 
-    render json: { error: 'origin, destination and number of pois are required' },
+    number_of_pois = Integer(params[:number_of_pois], exception: false)
+
+    return if number_of_pois&.positive?
+
+    render json: { error: 'number_of_pois must be a positive integer' },
            status: :bad_request
   end
 end

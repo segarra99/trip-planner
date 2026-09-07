@@ -20,14 +20,15 @@ class TripPlanning
         route_distance_sql(origin, destination),
         ROUTE_THRESHOLD_METERS
       )
-      .order(Arel.sql('route_position ASC'))
+      .order(Arel.sql('route_position ASC, pois.id ASC'))
   end
 
   # Select a subset of POIs at even intervals along the route.
   def self.select_pois(pois, number_of_pois)
-    return pois.to_a if pois.length <= number_of_pois
-
     pois = pois.to_a
+    return pois.to_a if pois.length <= number_of_pois
+    return [pois.first] if number_of_pois == 1
+
     last_index = pois.length - 1
 
     number_of_pois.times.map do |index|
