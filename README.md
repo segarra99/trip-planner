@@ -372,3 +372,22 @@ For the implementation, there are also two options:
 I will use Option 1 because the logic is simple: validate the coordinates and run a single PostGIS query. A service would be a bit overkill for this operation.
 
 The distance will be calculated using PostGIS rather than in Ruby.
+
+### POI Response Consistency
+
+All endpoints return POIs using the same response structure, including categories.
+
+This keeps the API consistent and allows the Poi schema to be reused across endpoints.
+
+### API Coordinate Response
+
+I considered how to return coordinates in the API. There are 2 options:
+
+- Option 1: Return the PostGIS point
+  This avoids conversion but exposes the database representation to API consumers.
+
+- Option 2: Return separate latitude and longitude fields
+  This is simpler for API consumers and keeps the database representation internal.
+
+I opted for option 2. The API returns latitude and longitude while PostGIS geometry is used internally for spatial queries.
+
