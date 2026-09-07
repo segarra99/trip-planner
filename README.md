@@ -152,6 +152,18 @@ I then started thinking about the best way to import data from the CSV files. Th
 
 I'll import the CSV files directly in db/seeds.rb since these represent the initial dataset for the challenge. This keeps setup simple and allows running rails db:seed to populate the database immediately. I thought about using a rake task to enforce separation of concerns, but I think that would be overengineering for this case since these csv files are the initial data for the exercise.
 
+#### Category Import from CSV
+
+The POI CSV contains a comma-separated categories column, which is parsed during import:
+
+- Categories are extracted, deduplicated, and inserted into the categories table
+
+- POIs are then associated with their categories via the join table
+
+- If a category already exists, it's not duplicated
+
+This two step approach ensures data consistency while handling edge cases like empty or duplicate category names in the CSV.
+
 ### Preventing Duplicates
 
 Next step is preventing duplicates while importing data, since the CSV structure may change. There are 2 options:
@@ -163,6 +175,16 @@ Next step is preventing duplicates while importing data, since the CSV structure
   This is more efficient since it's a single SQL statement, that will either insert or update each row without creating duplicates. It's faster and handles everything automatically.
 
 I decided to go with option 2.
+
+For locations and categories I prevent duplicate entries by adding a unique index on their respective name fields, but for pois there's 2 options:
+
+- Option 1: Unique constraint on name
+  This would prevent multiple POIs with the same name regardless of location, which doesn't make sense - you could have "Beach" in Lagos and "Beach" in Sintra.
+
+- Option 2: Composite unique constraint on name + location_point
+  Pros include allowing different POIs to share names at different locations, and enabling unique identification by the combination of name and coordinates. Only con is slightly more complex SQL queries but negligible performance impact.
+
+I decided to go with option 2. This allows "Beach" to exist in multiple cities while still preventing exact duplicates (same name at same location).
 
 ### Import Error Handling
 
@@ -203,7 +225,15 @@ The migrations create 4 tables:
 
 I chose to keep locations, POIs and categories in separate tables. Categories are connected to POIs through a join table because both sides can have multiple related records. This also makes it easier to query POIs by category without storing and parsing a list of categories on the POI itself.
 Names and regions use string because they are short values, while POI descriptions use text because they do not need an artificial length limit. The name and coordinate fields are required because a record without them would not be useful to the application.
-Locations and POIs store their coordinates as geometry(Point,4326). This keeps the coordinate data in a format PostGIS can use for spatial queries, such as finding nearby POIs. The index choices and their implementation details are documented in the migration files.
+Locations and POIs store their coordinates as geometry(Point,4326). This keeps the coordinate data in a format PostGIS can use for spatial queries, such as finding nearby POIs.
+
+#### Automatic Timestamps on All Models
+
+I enabled Rails' automatic timestamps (t.timestamps) on all tables:
+
+- locations, pois, categories - all get created_at and updated_at columns by default.
+
+This tracks when records are created and last modified. While not explicitly required for this challenge, it's useful for audit trails and debugging data import issues. If I wanted to disable this for any table, I'd need to add timestamps: false to the migration.
 
 ### API Response Format
 
@@ -390,4 +420,3 @@ I considered how to return coordinates in the API. There are 2 options:
   This is simpler for API consumers and keeps the database representation internal.
 
 I opted for option 2. The API returns latitude and longitude while PostGIS geometry is used internally for spatial queries.
-
