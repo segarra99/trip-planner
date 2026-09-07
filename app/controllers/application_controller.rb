@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class ApplicationController < ActionController::API
+  DEFAULT_PAGE = 1
+  DEFAULT_PER_PAGE = 10
+
   rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
 
   private
