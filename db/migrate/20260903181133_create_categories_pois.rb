@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Creates the join table connecting categories to points of interest.
 # A unique index prevents the same category/POI relationship from being inserted more than once.
 class CreateCategoriesPois < ActiveRecord::Migration[8.1]

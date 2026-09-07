@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class TripPlanningController < ApplicationController
   before_action :validate_params, only: :plan
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Each location has a name, region, and PostGIS point representing its latitude and longitude.
 # Indexes are added to support unique location names and efficient spatial queries.
 class CreateLocations < ActiveRecord::Migration[8.1]

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Each category has a unique name so categories can be consistently referenced by multiple points of interest.
 class CreateCategories < ActiveRecord::Migration[8.1]
   def change

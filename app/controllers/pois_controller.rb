@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class PoisController < ApplicationController
   before_action :validate_coordinates, only: :nearest
 

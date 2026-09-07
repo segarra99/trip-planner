@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Each POI has a name, description, and PostGIS point representing its location.
 # Names and coordinates together must be unique to allow different POIs to share a name.
 # A GiST index is also added to support efficient spatial queries.

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class TripPlanning
   # Maximum distance (in meters) from origin to destination line for a POI to be considered along the route
   ROUTE_THRESHOLD_METERS = 10_000

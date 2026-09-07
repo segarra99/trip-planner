@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class LocationsController < ApplicationController
   def index
     locations = Location.all
@@ -5,7 +7,7 @@ class LocationsController < ApplicationController
 
     render json: locations.as_json(
       except: :location_point,
-      methods: %i[latitude longitude],
+      methods: %i[latitude longitude]
     )
   end
 
@@ -14,7 +16,7 @@ class LocationsController < ApplicationController
 
     render json: location.as_json(
       except: :location_point,
-      methods: %i[latitude longitude],
+      methods: %i[latitude longitude]
     )
   end
 end

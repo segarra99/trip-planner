@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 class WelcomeController < ActionController::Base
-  layout "application"
+  layout 'application'
 
   def index
-    readme_path = Rails.root.join("README.md")
+    readme_path = Rails.root.join('README.md')
     @readme_content = File.read(readme_path)
     @readme_html = render_markdown(@readme_content)
   end
