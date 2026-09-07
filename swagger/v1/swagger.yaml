@@ -10,15 +10,40 @@ paths:
       tags:
       - Categories
       description: Returns all available categories.
+      parameters:
+      - name: page
+        in: query
+        required: false
+        description: Page number
+        schema:
+          type: integer
+          default: 1
+          example: 1
+      - name: per_page
+        in: query
+        required: false
+        description: Number of results per page
+        schema:
+          type: integer
+          default: 10
+          example: 10
       responses:
         '200':
           description: categories found
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  "$ref": "#/components/schemas/Category"
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Category"
+                  pagination:
+                    "$ref": "#/components/schemas/Pagination"
+                required:
+                - categories
+                - pagination
   "/locations":
     get:
       summary: List locations
@@ -33,15 +58,39 @@ paths:
         schema:
           type: string
           example: Lisboa
+      - name: page
+        in: query
+        required: false
+        description: Page number
+        schema:
+          type: integer
+          default: 1
+          example: 1
+      - name: per_page
+        in: query
+        required: false
+        description: Number of results per page
+        schema:
+          type: integer
+          default: 10
+          example: 10
       responses:
         '200':
           description: locations found
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  "$ref": "#/components/schemas/Location"
+                type: object
+                properties:
+                  locations:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Location"
+                  pagination:
+                    "$ref": "#/components/schemas/Pagination"
+                required:
+                - locations
+                - pagination
   "/locations/{id}":
     get:
       summary: Retrieve a location
@@ -90,15 +139,39 @@ paths:
         schema:
           type: integer
           example: 1
+      - name: page
+        in: query
+        required: false
+        description: Page number
+        schema:
+          type: integer
+          default: 1
+          example: 1
+      - name: per_page
+        in: query
+        required: false
+        description: Number of POIs per page
+        schema:
+          type: integer
+          default: 10
+          example: 10
       responses:
         '200':
           description: POIs found
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  "$ref": "#/components/schemas/Poi"
+                type: object
+                properties:
+                  pois:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/Poi"
+                  pagination:
+                    "$ref": "#/components/schemas/Pagination"
+                required:
+                - pois
+                - pagination
   "/pois/{id}":
     get:
       summary: Retrieve a POI
@@ -198,15 +271,43 @@ paths:
         schema:
           type: integer
           example: 1
+      - name: page
+        in: query
+        required: false
+        description: Page number
+        schema:
+          type: integer
+          minimum: 1
+          example: 1
+      - name: per_page
+        in: query
+        required: false
+        description: Number of POIs per page
+        schema:
+          type: integer
+          minimum: 1
+          example: 10
       responses:
         '200':
           description: POIs returned
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  "$ref": "#/components/schemas/Poi"
+                oneOf:
+                - type: array
+                  items:
+                    "$ref": "#/components/schemas/Poi"
+                - type: object
+                  properties:
+                    pois:
+                      type: array
+                      items:
+                        "$ref": "#/components/schemas/Poi"
+                    pagination:
+                      "$ref": "#/components/schemas/Pagination"
+                  required:
+                  - pois
+                  - pagination
         '404':
           description: resource not found
           content:
@@ -321,3 +422,23 @@ components:
           example: bad request / not found
       required:
       - error
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 47
+        total_pages:
+          type: integer
+          example: 3
+      required:
+      - page
+      - per_page
+      - total
+      - total_pages
