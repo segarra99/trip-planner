@@ -11,7 +11,7 @@ RSpec.describe 'POIs API', type: :request do
                 in: :query,
                 required: false,
                 description: 'Filter by point of interest name',
-                schema: { type: :string, example: 'Praia da Ursa' }
+                schema: { type: :string, example: 'Praia da Marinha' }
 
       parameter name: :category,
                 in: :query,
@@ -59,7 +59,7 @@ RSpec.describe 'POIs API', type: :request do
 
           let!(:beach_poi) do
             poi = Poi.create!(
-              name: 'Praia da Ursa',
+              name: 'Praia da Marinha',
               description: 'A beautiful beach',
               location_point: factory.point(-9.4733, 38.7951)
             )
@@ -83,7 +83,7 @@ RSpec.describe 'POIs API', type: :request do
 
             expect(pois.length).to eq(2)
             expect(pois.map { |poi| poi['name'] })
-              .to contain_exactly('Praia da Ursa', 'Lisbon Museum')
+              .to contain_exactly('Praia da Marinha', 'Lisbon Museum')
           end
         end
 
@@ -176,12 +176,12 @@ RSpec.describe 'POIs API', type: :request do
         end
 
         context 'when filtering by name' do
-          let(:name) { 'Praia da Ursa' }
+          let(:name) { 'Praia da Marinha' }
           let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
 
           let!(:beach_poi) do
             Poi.create!(
-              name: 'Praia da Ursa',
+              name: 'Praia da Marinha',
               description: 'A beautiful beach',
               location_point: factory.point(-9.4733, 38.7951)
             )
@@ -200,7 +200,7 @@ RSpec.describe 'POIs API', type: :request do
             pois = body['pois']
 
             expect(pois.length).to eq(1)
-            expect(pois.first['name']).to eq('Praia da Ursa')
+            expect(pois.first['name']).to eq('Praia da Marinha')
           end
         end
 
@@ -211,7 +211,7 @@ RSpec.describe 'POIs API', type: :request do
 
           let!(:beach_poi) do
             poi = Poi.create!(
-              name: 'Praia da Ursa',
+              name: 'Praia da Marinha',
               description: 'A beautiful beach',
               location_point: factory.point(-9.4733, 38.7951)
             )
@@ -236,7 +236,7 @@ RSpec.describe 'POIs API', type: :request do
             pois = body['pois']
 
             expect(pois.length).to eq(1)
-            expect(pois.first['name']).to eq('Praia da Ursa')
+            expect(pois.first['name']).to eq('Praia da Marinha')
           end
         end
       end
@@ -260,7 +260,7 @@ RSpec.describe 'POIs API', type: :request do
         let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
         let(:id) do
           Poi.create!(
-            name: 'Praia da Ursa',
+            name: 'Praia da Marinha',
             description: 'A beautiful beach',
             location_point: factory.point(-9.4733, 38.7951)
           ).id
@@ -269,7 +269,7 @@ RSpec.describe 'POIs API', type: :request do
         run_test! do |response|
           body = JSON.parse(response.body)
           expect(body['id']).to eq(id)
-          expect(body['name']).to eq('Praia da Ursa')
+          expect(body['name']).to eq('Praia da Marinha')
           expect(body['description']).to eq('A beautiful beach')
         end
       end

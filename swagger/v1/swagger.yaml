@@ -131,7 +131,7 @@ paths:
         description: Filter by point of interest name
         schema:
           type: string
-          example: Praia da Ursa
+          example: Praia da Marinha
       - name: category
         in: query
         required: false
