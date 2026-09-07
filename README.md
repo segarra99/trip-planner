@@ -474,3 +474,23 @@ For `/trip-planning`, I considered 2 options:
 **I decided to use a middle ground:** `/trip-planning` is not paginated by default, but supports pagination when `page` or `per_page` is provided. This allows the map to receive all selected POIs by default, while still supporting paginated results when needed.
 
 I'll be applying the pagination in Ruby after the trip-planning query has selected and ordered the POIs. This keeps the route selection and ordering deterministic before pagination is applied.
+
+### CI/CD
+
+This project uses GitHub Actions for continuous integration. The workflow runs on every push and pull request, and consists of three steps:
+
+1. **Build** the test Docker image (`docker compose build test`), ensuring the image used for linting and testing reflects the current `Gemfile.lock` and Dockerfile.
+2. **Lint** the codebase with RuboCop (`docker compose --profile test run --rm --no-deps test bundle exec rubocop`), run without the `db` service dependency since linting doesn't require a database connection.
+3. **Test** the application (`docker compose --profile test run --rm test`), running the full RSpec suite against a PostgreSQL/PostGIS database.
+
+The workflow definition lives at `.github/workflows/ci.yml`.
+
+### Running the same checks locally
+
+To reproduce the CI pipeline on your machine before pushing:
+
+\`\`\`bash
+docker compose build test
+docker compose --profile test run --rm --no-deps test bundle exec rubocop
+docker compose --profile test run --rm test
+\`\`\`
