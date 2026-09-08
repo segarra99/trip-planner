@@ -4,21 +4,25 @@ require 'rails_helper'
 
 RSpec.describe TripPlanning do
   describe '.plan' do
-    it 'selects POIs within the route threshold' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
+    let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
 
-      origin = Location.create!(
+    let(:origin) do
+      Location.create!(
         name: 'Lisboa',
         region: 'Lisboa',
         location_point: factory.point(-9.1393, 38.7223)
       )
+    end
 
-      destination = Location.create!(
+    let(:destination) do
+      Location.create!(
         name: 'Porto',
         region: 'Porto',
         location_point: factory.point(-8.6291, 41.1579)
       )
+    end
 
+    it 'selects POIs within the route threshold' do
       poi = Poi.create!(
         name: 'Along Route',
         description: 'Near the route',
@@ -35,20 +39,6 @@ RSpec.describe TripPlanning do
     end
 
     it 'excludes POIs outside the route threshold' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
-
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
-
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
-
       poi = Poi.create!(
         name: 'Off Route',
         description: 'Far from the route',
@@ -65,20 +55,6 @@ RSpec.describe TripPlanning do
     end
 
     it 'orders POIs by their position along the route' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
-
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
-
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
-
       first_poi = Poi.create!(
         name: 'First POI',
         description: 'First stop',
@@ -101,20 +77,6 @@ RSpec.describe TripPlanning do
     end
 
     it 'spreads selected POIs across the route' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
-
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
-
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
-
       first_poi = Poi.create!(
         name: 'First POI',
         description: 'First stop',
@@ -144,20 +106,6 @@ RSpec.describe TripPlanning do
     end
 
     it 'applies the category filter before selecting POIs' do
-      factory = RGeo::Geographic.spherical_factory(srid: 4326)
-
-      origin = Location.create!(
-        name: 'Lisboa',
-        region: 'Lisboa',
-        location_point: factory.point(-9.1393, 38.7223)
-      )
-
-      destination = Location.create!(
-        name: 'Porto',
-        region: 'Porto',
-        location_point: factory.point(-8.6291, 41.1579)
-      )
-
       beach = Category.create!(name: 'Beach')
       museum = Category.create!(name: 'Museum')
 
@@ -191,6 +139,59 @@ RSpec.describe TripPlanning do
 
       expect(result).to contain_exactly(first_beach, second_beach)
       expect(result).not_to include(museum_poi)
+    end
+  end
+
+  describe '.select_pois' do
+    def poi_at(position)
+      Struct.new(:route_position).new(position)
+    end
+
+    it 'selects the POI closest to the centre of each route section' do
+      pois = [
+        poi_at(0.05),
+        poi_at(0.20),
+        poi_at(0.45),
+        poi_at(0.55),
+        poi_at(0.80),
+        poi_at(0.95)
+      ]
+
+      result = TripPlanning.send(:select_pois, pois, 3)
+
+      expect(result.map(&:route_position)).to eq([0.20, 0.45, 0.80])
+    end
+
+    it 'uses unused POIs to fill empty route sections' do
+      pois = [
+        poi_at(0.05),
+        poi_at(0.10),
+        poi_at(0.90)
+      ]
+
+      result = TripPlanning.send(:select_pois, pois, 3)
+
+      expect(result.map(&:route_position)).to eq([0.05, 0.10, 0.90])
+    end
+
+    it 'returns all POIs when fewer are available than requested' do
+      pois = [
+        poi_at(0.2),
+        poi_at(0.8)
+      ]
+
+      result = TripPlanning.send(:select_pois, pois, 5)
+
+      expect(result).to eq(pois)
+    end
+
+    it 'returns the first POI when one POI is requested' do
+      first = poi_at(0.1)
+      second = poi_at(0.9)
+
+      result = TripPlanning.send(:select_pois, [first, second], 1)
+
+      expect(result).to eq([first])
     end
   end
 end
