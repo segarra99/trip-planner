@@ -18,7 +18,7 @@ class TripPlanning
     Poi
       .includes(:categories)
       .select(
-        "pois.*",
+        'pois.*',
         Arel.sql("#{route_position} AS route_position")
       )
       .where(
@@ -26,7 +26,7 @@ class TripPlanning
         ROUTE_THRESHOLD_METERS
       )
       .order(
-        Arel.sql("route_position ASC, pois.id ASC")
+        Arel.sql('route_position ASC, pois.id ASC')
       )
   end
 
@@ -37,35 +37,8 @@ class TripPlanning
     return pois if pois.length <= number_of_pois
     return [pois.first] if number_of_pois == 1
 
-    buckets = Array.new(number_of_pois) { [] }
-
-    pois.each do |poi|
-      bucket = [(poi.route_position.to_f * number_of_pois).floor, number_of_pois - 1].min
-      buckets[bucket] << poi
-    end
-
-    selected = buckets.filter_map.with_index do |bucket, index|
-      next if bucket.empty?
-
-      target = (index + 0.5) / number_of_pois
-
-      bucket.min_by do |poi|
-        (poi.route_position.to_f - target).abs
-      end
-    end
-
-    remaining = pois - selected
-
-    while selected.length < number_of_pois && remaining.any?
-      poi = remaining.max_by do |candidate|
-        selected.map do |selected_poi|
-          (candidate.route_position.to_f - selected_poi.route_position.to_f).abs
-        end.min
-      end
-
-      selected << poi
-      remaining.delete(poi)
-    end
+    selected = select_from_buckets(pois, number_of_pois)
+    fill_remaining_pois(selected, pois, number_of_pois)
 
     selected.sort_by { |poi| poi.route_position.to_f }
   end
@@ -115,8 +88,48 @@ class TripPlanning
     )
   end
 
+  def self.select_from_buckets(pois, number_of_pois)
+    buckets = Array.new(number_of_pois) { [] }
+
+    pois.each do |poi|
+      bucket = [
+        (poi.route_position.to_f * number_of_pois).floor,
+        number_of_pois - 1
+      ].min
+
+      buckets[bucket] << poi
+    end
+
+    buckets.filter_map.with_index do |bucket, index|
+      next if bucket.empty?
+
+      target = (index + 0.5) / number_of_pois
+
+      bucket.min_by do |poi|
+        (poi.route_position.to_f - target).abs
+      end
+    end
+  end
+
+  def self.fill_remaining_pois(selected, pois, number_of_pois)
+    remaining = pois - selected
+
+    while selected.length < number_of_pois && remaining.any?
+      poi = remaining.max_by do |candidate|
+        selected.map do |selected_poi|
+          (candidate.route_position.to_f - selected_poi.route_position.to_f).abs
+        end.min
+      end
+
+      selected << poi
+      remaining.delete(poi)
+    end
+  end
+
   private_class_method :pois_along_route,
                        :select_pois,
                        :route_distance_sql,
-                       :route_position_sql
+                       :route_position_sql,
+                       :select_from_buckets,
+                       :fill_remaining_pois
 end
