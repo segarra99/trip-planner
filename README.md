@@ -524,3 +524,17 @@ I then considered two ways for the frontend to get data:
 **I opted for option 2** because the API already provides the functionality the frontend needs, so there is no need to duplicate it in another controller. It also means the frontend uses the same interface that any other client would use.
 
 The frontend will only use the endpoints it needs, such as `/locations`, `/categories` and `/trip-planning`. Endpoints such as `/pois/nearest` remain available as API functionality but are not needed for the frontend.
+
+#### JavaScript vs TypeScript
+
+I considered two options for the frontend language:
+
+- **Option 1: TypeScript**
+
+    This would provide type safety, but would require additional tooling and configuration.
+
+- **Option 2: JavaScript**
+
+    This is already enough for the scope of the frontend and does not require additional tooling.
+
+**I opted for option 2** because the frontend is a small bonus feature, so I don't think the additional setup and complexity of TypeScript is justified for this project.
