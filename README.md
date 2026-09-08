@@ -538,3 +538,167 @@ I considered two options for the frontend language:
     This is already enough for the scope of the frontend and does not require additional tooling.
 
 **I opted for option 2** because the frontend is a small bonus feature, so I don't think the additional setup and complexity of TypeScript is justified for this project.
+
+#### Frontend Technologies
+
+The frontend uses:
+
+- Rails Views
+- JavaScript
+- Importmap
+- Propshaft
+- Leaflet
+- OpenStreetMap
+- OSRM
+
+#### Frontend Structure
+
+I considered whether to split the JavaScript into multiple files.
+
+- **Option 1: Multiple JavaScript files**
+
+    This would separate responsibilities such as API requests, map handling and UI rendering. This would make each file smaller, but would add more structure and imports.
+
+- **Option 2: One JavaScript file**
+
+    This keeps the frontend simple and makes the whole flow easy to follow in one place. The downside is that the file could become harder to maintain if the frontend grows significantly.
+
+**I opted for option 2** because the frontend is small enough that splitting it into multiple files would add more complexity than value.
+
+#### Map
+
+I considered a few options for displaying the map:
+
+- **Option 1: Google Maps**
+
+    This is a mature mapping platform with routing support, but requires an API key and adds a dependency on Google's services.
+
+- **Option 2: Mapbox**
+
+    This provides maps and routing, but also requires an API key and adds another external service.
+
+- **Option 3: Leaflet with OpenStreetMap**
+
+    Leaflet is a lightweight mapping library and OpenStreetMap provides the map data. This gives me the functionality needed without adding a large frontend dependency.
+
+**I opted for option 3** because it is simple, open source and works well with the existing Rails frontend.
+
+#### Map Markers
+
+I considered two options:
+
+- **Option 1: Leaflet default markers**
+
+    This would be simpler, but all points would look the same.
+
+- **Option 2: Custom Leaflet markers**
+
+    Leaflet's `divIcon` allows the markers to be created with HTML and styled with CSS. This also allows POI numbers to be displayed directly on the map.
+
+**I opted for option 2** because it makes the different types of points easier to identify.
+
+The markers use:
+
+- Green for the origin
+- Red for the destination
+- Blue numbered markers for POIs
+
+#### Route Display
+
+- **Option 1: Straight lines**
+
+    This is simple and does not require an external routing service. The downside is that a straight line does not represent the route a vehicle would actually take.
+
+- **Option 2: Route following roads**
+
+    A routing service can calculate a driving route between the origin, POIs and destination. This gives a more realistic representation of the trip, but adds an external dependency.
+
+**I opted for option 2** because the frontend is intended to represent a roadtrip, so showing the actual driving route is more useful than showing straight lines between points.
+
+#### Routing Service
+
+For calculating the driving route I considered:
+
+- **Option 1: OSRM**
+
+    Open-source routing engine that supports driving routes and multiple waypoints. It can return the route as GeoJSON, which can be displayed directly by Leaflet.
+
+- **Option 2: GraphHopper**
+
+    Provides routing and additional features, but adds another external service and API configuration.
+
+- **Option 3: OpenRouteService**
+
+    Provides routing using OpenStreetMap data, but also requires external API configuration.
+
+**I opted for option 1** because OSRM provides the functionality needed for this challenge with minimal setup.
+
+The frontend sends the origin, selected POIs and destination to OSRM. The returned road geometry is then displayed using Leaflet.
+
+#### Trip Planning vs Route Display
+
+The backend and frontend use the route for different purposes.
+
+The backend uses the straight origin-to-destination line and the 10 km threshold to decide which POIs are along the trip.
+
+The frontend uses OSRM to display the resulting trip as an actual driving route.
+
+I chose to keep these separate because changing the backend POI selection to use a routing service would make the trip-planning algorithm more complex and introduce an external dependency into the API.
+
+#### POI Panel
+
+I wanted the selected POIs to be visible without requiring the user to click each map marker.
+
+I considered two options:
+
+- **Option 1: Show POIs only on the map**
+
+    This keeps the interface smaller, but the user needs to interact with the markers to see the POI information.
+
+- **Option 2: Show POIs in a panel next to the map**
+
+    This allows the user to see the POIs, categories and descriptions at the same time as the map.
+
+**I opted for option 2** because the map provides the geographic information while the panel provides the detailed information.
+
+The POIs are displayed in route order and numbered to match their markers on the map. Clicking a POI in the panel focuses its marker and opens its popup.
+
+#### Map and Panel Layout
+
+I considered placing the POI panel above or below the map, but decided to place it beside the map on larger screens.
+
+This allows the user to see the route and the POI information at the same time.
+
+On smaller screens the layout changes to a single column, with the map above the POI panel.
+
+#### Frontend Dependencies
+
+I wanted to avoid adding dependencies where the existing Rails setup was enough.
+
+The frontend therefore uses:
+
+- **Leaflet** for the interactive map
+- **OpenStreetMap** for map tiles
+- **OSRM** for driving route calculation
+
+No frontend framework or additional marker library is used.
+
+Leaflet is loaded through Importmap and the frontend assets are served through Propshaft.
+
+#### Documentation
+
+The planner has buttons for the README and Swagger. Both have a back button to return to the planner.
+
+#### README Rendering
+
+I considered two options:
+
+- **Option 1: Display the raw README**
+
+    This requires no processing, but the Markdown would not be formatted.
+
+- **Option 2: Render the README as HTML**
+
+    Redcarpet converts the existing `README.md` into HTML which is then rendered in a Rails view.
+
+**I opted for option 2** because Redcarpet is already a dependency. Also it looks a lot better.
