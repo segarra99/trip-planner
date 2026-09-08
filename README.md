@@ -134,3 +134,9 @@ The database is automatically seeded and the application is ready to use.
 ### Architecture
 
 The main architectural decisions are documented in [Architecture Decisions](docs/ARCHITECTURE.md).
+
+### Deployment
+
+The application is containerized with Docker and can be deployed to a container-based hosting platform.
+
+Production deployment requirements and considerations are documented in [Deployment](docs/DEPLOYMENT.md).
