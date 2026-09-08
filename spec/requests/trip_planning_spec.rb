@@ -688,6 +688,14 @@ RSpec.describe 'Trip Planning API', type: :request do
 
           run_test!
         end
+
+        context 'when origin and destination are the same' do
+          let(:origin) { 1 }
+          let(:destination) { 1 }
+          let(:number_of_pois) { 2 }
+
+          run_test!
+        end
       end
     end
   end
