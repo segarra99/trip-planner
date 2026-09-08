@@ -4,9 +4,9 @@ class TripPlanning
   # Maximum distance (in meters) from origin to destination line for a POI to be considered along the route
   ROUTE_THRESHOLD_METERS = 10_000
 
-  def self.plan(origin:, destination:, number_of_pois:, category: nil)
+  def self.plan(origin:, destination:, number_of_pois:, categories: [])
     pois = pois_along_route(origin, destination)
-    pois = pois.with_category(category.id) if category
+    pois = pois.with_categories(categories.map(&:id)) if categories.any?
 
     select_pois(pois, number_of_pois)
   end

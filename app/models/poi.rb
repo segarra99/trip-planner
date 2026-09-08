@@ -6,6 +6,11 @@ class Poi < ApplicationRecord
 
   scope :name_matches, ->(name) { where('pois.name ILIKE ?', "%#{name}%") }
   scope :with_category, ->(category_id) { joins(:categories).where(categories: { id: category_id }) }
+  scope :with_categories, lambda { |category_ids|
+    joins(:categories)
+      .where(categories: { id: category_ids })
+      .distinct
+  }
 
   def latitude
     location_point&.y

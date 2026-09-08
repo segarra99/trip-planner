@@ -7,13 +7,13 @@ module Api
     def index
       origin = Location.find(params[:origin])
       destination = Location.find(params[:destination])
-      category = Category.find(params[:category]) if params[:category]
+      categories = Category.find(category_ids)
 
       pois = TripPlanning.plan(
         origin: origin,
         destination: destination,
         number_of_pois: params[:number_of_pois].to_i,
-        category: category
+        categories: categories
       )
 
       return render_paginated(pois) if pagination_requested?
@@ -22,6 +22,10 @@ module Api
     end
 
     private
+
+    def category_ids
+      Array(params[:category]).reject(&:blank?)
+    end
 
     def pagination_requested?
       params[:page].present? || params[:per_page].present?
