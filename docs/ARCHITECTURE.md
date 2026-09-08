@@ -564,25 +564,44 @@ No frontend framework or additional marker library is used.
 
 Leaflet is loaded through Importmap and the frontend assets are served through Propshaft.
 
-#### Documentation
+### Refactoring
 
-The planner has buttons for the README and Swagger. Both have a back button to return to the planner.
+### Documentation
 
-#### README Rendering
+The application includes separate pages for the architecture decisions and deployment instructions, along with the Swagger API documentation.
+
+I added shared navigation to the Rails application layout so these sections are accessible from every page.
+
+- **Planner** — the roadtrip planning interface.
+- **Architecture** — the main technical and architectural decisions.
+- **Deployment** — production deployment considerations.
+- **Swagger** — interactive API documentation.
+-
+
+### Shared Navigation
 
 I considered two options:
 
-- **Option 1: Display the raw README**
+- **Option 1: Add navigation to each page**
 
-    This requires no processing, but the Markdown would not be formatted.
+    Each page would define its own navigation links. This is simple for a small number of pages, but duplicates the same markup and makes changes harder to maintain.
 
-- **Option 2: Render the README as HTML**
+- **Option 2: Add shared navigation to the Rails layout**
 
-    Redcarpet converts the existing `README.md` into HTML which is then rendered in a Rails view.
+    The navigation is defined once in the application layout and automatically appears on the Rails pages.
 
-**I opted for option 2** because Redcarpet is already a dependency. Also it looks a lot better.
+**I opted for option 2** because the Planner, Architecture and Deployment pages are all part of the same application. Keeping the navigation in the shared layout avoids duplication and keeps the structure consistent.
 
-### Refactoring
+The Swagger page uses its own Rswag template, so the same navigation structure and styling are included there separately. Also the button for the current page is disabled and on a hovered state.
+
+### Documentation Pages
+
+I considered keeping the architecture and deployment documentation in the README, but separated them into dedicated pages.
+
+- **Architecture** contains the main implementation and design decisions.
+- **Deployment** contains production deployment requirements and considerations.
+
+**I opted for separate pages** to keep the main README as the initial challenge spec while still making the detailed documentation easily accessible through the shared navigation.
 
 #### Selecting the requested POIs
 
@@ -623,3 +642,5 @@ If fewer POIs are available than requested, I return all matching POIs.
 I also want to prevent the origin and destination from being the same location.
 
 I will validate this at the API level and return `400 Bad Request` when they are identical.
+
+In the frontend, the selected location is disabled in the other dropdown to prevent the same selection.
