@@ -6,7 +6,11 @@ class TripPlanning
 
   def self.plan(origin:, destination:, number_of_pois:, categories: [])
     pois = pois_along_route(origin, destination)
-    pois = pois.with_categories(categories.map(&:id)) if categories.any?
+
+    if categories.any?
+      category_ids = categories.map(&:id)
+      pois = pois.where(id: Poi.with_categories(category_ids).select(:id))
+    end
 
     select_pois(pois, number_of_pois)
   end
@@ -16,7 +20,7 @@ class TripPlanning
     route_position = route_position_sql(origin, destination)
 
     Poi
-      .includes(:categories)
+      .preload(:categories)
       .select(
         'pois.*',
         Arel.sql("#{route_position} AS route_position")
