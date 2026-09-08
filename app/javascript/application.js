@@ -35,8 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             populateLocations(originSelect);
             populateLocations(destinationSelect);
-            updateLocationOptions();
             populateCategories(categories);
+            updateLocationOptions();
         } catch (error) {
             console.error("Failed to initialize planner:", error);
             showError("Unable to load the roadtrip data. Please try again.");
@@ -94,6 +94,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             select.appendChild(option);
         });
+
+        const defaultName = select === originSelect ? "Porto" : "Lisboa";
+
+        const defaultLocation = locations.find(
+            (location) => location.name === defaultName,
+        );
+
+        if (defaultLocation) {
+            select.value = defaultLocation.id;
+        }
     }
 
     function populateCategories(categories) {
