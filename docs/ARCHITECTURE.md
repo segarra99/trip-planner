@@ -617,3 +617,9 @@ If a bucket is empty, I fill the remaining slots with unused POIs that are furth
 The category filter is applied before selection, so only matching POIs are considered.
 
 If fewer POIs are available than requested, I return all matching POIs.
+
+#### Preventing Identical Origin and Destination
+
+I also want to prevent the origin and destination from being the same location.
+
+I will validate this at the API level and return `400 Bad Request` when they are identical.
