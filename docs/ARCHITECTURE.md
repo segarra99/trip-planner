@@ -16,6 +16,20 @@ For testing I considered 2 options:
 
 **I'll use both.** Integration tests will cover the API behaviour, while unit tests will cover application logic that makes sense to test separately.
 
+### Environment Configuration
+
+I considered whether to use `.env` files for configuration.
+
+- **Option 1: `.env` files**
+
+    The standard way to separate configuration from code, especially for secrets.
+
+- **Option 2: Configuration directly in `docker-compose.yml`**
+
+    Keeps all configuration in one place instead of splitting it across files.
+
+**I opted for option 2.** This project only runs locally through Docker Compose, and the database credentials are disposable local values, not real secrets. A `.env` file would add a second place to manage configuration without an actual environment to vary it across. This would need to change if the project introduced real secrets or a deployed environment.
+
 ### Data Structure
 
 I first chose to start by designing the database structure. 3 things must be stored separately:
@@ -716,3 +730,9 @@ For a production application, I would add error tracking, structured logs and ba
 The application is containerized and can be deployed to a container-based hosting platform.
 
 With more time, I would add deployment automation for a specific hosting provider, including running migrations and handling the data import as part of the release process.
+
+### Environment Configuration
+
+Configuration currently lives directly in `docker-compose.yml`, which is reasonable while the project only runs locally with disposable credentials.
+
+If this project were deployed or introduced real secrets, I would move configuration to `.env` files (git-ignored) and reference them from `docker-compose.yml` instead of hardcoding values.
