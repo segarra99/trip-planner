@@ -662,3 +662,57 @@ I considered two options:
 **I opted for option 2** because POIs can belong to multiple categories and users are likely selecting multiple interests they want to discover. This gives users a broader set of relevant stops rather than excluding POIs that only match one of their interests.
 
 The API accepts multiple category IDs, the trip-planning service filters POIs against the selected categories, and the frontend category dropdown allows multiple selections.
+
+## Future Improvements
+
+The current implementation covers the main requirements of the challenge. If I had more time, I would focus on improving some of the areas below rather than adding more features.
+
+### POI Selection
+
+The current POI selection uses the straight line between the origin and destination to determine where stops should be placed.
+
+With more time, I would improve this by using the actual driving route when selecting POIs. This would make the recommendations more accurate, especially when the road route differs significantly from the straight-line route.
+
+### Frontend Testing
+
+The main application logic is covered by automated tests, but most of the frontend behaviour is currently tested manually.
+
+I would add browser or JavaScript tests for the main interactions, including category selection, origin and destination validation, loading and error states, and the interaction between the POI list and the map.
+
+### Routing Service
+
+The application currently uses the public OSRM service to calculate driving routes.
+
+This works well for the challenge, but it would need more consideration in a production environment. I would add better handling for timeouts and service failures and make the routing service easier to replace if another provider was needed.
+
+### Performance
+
+The current dataset is relatively small, so the existing queries are sufficient.
+
+If the amount of data increased, I would benchmark the PostGIS queries and category filtering and optimise them based on the actual bottlenecks rather than adding indexes unnecessarily.
+
+### API Structure
+
+The API is intentionally kept simple, with controllers handling validation and response formatting.
+
+If the API became larger, I would consider moving some of this logic into dedicated serializers or other objects. This would keep the controllers smaller and make the API responses easier to maintain.
+
+### Accessibility
+
+The frontend was mainly built around the requirements of the challenge.
+
+With more time, I would do a dedicated accessibility pass, particularly around keyboard navigation, focus handling and screen-reader support.
+
+I would also make the custom category selector fully keyboard accessible, including focus management and selecting options with the keyboard.
+
+### Monitoring
+
+The application currently relies on the logging provided by the container and hosting platform.
+
+For a production application, I would add error tracking, structured logs and basic application metrics to make it easier to identify and investigate problems.
+
+### Deployment
+
+The application is containerized and can be deployed to a container-based hosting platform.
+
+With more time, I would add deployment automation for a specific hosting provider, including running migrations and handling the data import as part of the release process.
