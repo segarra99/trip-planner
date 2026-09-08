@@ -4,7 +4,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const form = document.querySelector("#planner-form");
     const originSelect = document.querySelector("#origin");
     const destinationSelect = document.querySelector("#destination");
-    const categorySelect = document.querySelector("#category");
+    const categoryTrigger = document.querySelector("#category-trigger");
+    const categoryTriggerLabel = document.querySelector(
+        "#category-trigger-label",
+    );
+    const categoryOptions = document.querySelector("#category-options");
+    const categoryArrow = document.querySelector(".category-arrow");
     const numberOfPoisInput = document.querySelector("#number-of-pois");
     const submitButton = form.querySelector("button[type='submit']");
     const poiPanel = document.querySelector("#poi-panel");
@@ -21,6 +26,15 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", handleSubmit);
     originSelect.addEventListener("change", updateLocationOptions);
     destinationSelect.addEventListener("change", updateLocationOptions);
+
+    categoryTrigger.addEventListener("click", toggleCategoryDropdown);
+    categoryOptions.addEventListener("change", updateCategoryTrigger);
+
+    document.addEventListener("click", (event) => {
+        if (!event.target.closest(".category-dropdown")) {
+            closeCategoryDropdown();
+        }
+    });
 
     async function initialize() {
         setFormLoading(true);
@@ -107,14 +121,53 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function populateCategories(categories) {
+        categoryOptions.replaceChildren();
+
         categories.forEach((category) => {
-            const option = document.createElement("option");
+            const label = document.createElement("label");
+            label.className = "category-option";
 
-            option.value = category.id;
-            option.textContent = capitalize(category.name);
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.name = "category[]";
+            checkbox.value = category.id;
 
-            categorySelect.appendChild(option);
+            const text = document.createElement("span");
+            text.textContent = capitalize(category.name);
+
+            label.append(checkbox, text);
+            categoryOptions.appendChild(label);
         });
+    }
+
+    function toggleCategoryDropdown() {
+        const isOpen = !categoryOptions.hidden;
+
+        categoryOptions.hidden = isOpen;
+        categoryTrigger.setAttribute("aria-expanded", String(!isOpen));
+        categoryArrow.textContent = isOpen ? "▼" : "▲";
+    }
+
+    function closeCategoryDropdown() {
+        categoryOptions.hidden = true;
+        categoryTrigger.setAttribute("aria-expanded", "false");
+        categoryArrow.textContent = "▼";
+    }
+
+    function updateCategoryTrigger() {
+        const selectedCategories = categoryOptions.querySelectorAll(
+            'input[name="category[]"]:checked',
+        );
+
+        if (selectedCategories.length === 0) {
+            categoryTriggerLabel.textContent = "All categories";
+            return;
+        }
+
+        categoryTriggerLabel.textContent =
+            selectedCategories.length === 1
+                ? "1 category selected"
+                : `${selectedCategories.length} categories selected`;
     }
 
     async function handleSubmit(event) {
@@ -146,9 +199,15 @@ document.addEventListener("DOMContentLoaded", () => {
             number_of_pois: numberOfPois,
         });
 
-        if (categorySelect.value) {
-            params.set("category", categorySelect.value);
-        }
+        const selectedCategories = Array.from(
+            categoryOptions.querySelectorAll(
+                'input[name="category[]"]:checked',
+            ),
+        ).map((input) => input.value);
+
+        selectedCategories.forEach((category) => {
+            params.append("category[]", category);
+        });
 
         setFormLoading(true);
 

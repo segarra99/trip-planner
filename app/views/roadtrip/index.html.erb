@@ -2,53 +2,68 @@
 <% content_for :page_title, "Roadtrip Designer" %>
 <% content_for :page_description, "Plan your route and discover interesting stops along the way." %>
 
-  <form id="planner-form">
-    <label>
-      Origin
-      <select id="origin" required></select>
-    </label>
+<form id="planner-form">
+  <label>
+    Origin
+    <select id="origin" required></select>
+  </label>
 
-    <label>
-      Destination
-      <select id="destination" required></select>
-    </label>
+  <label>
+    Destination
+    <select id="destination" required></select>
+  </label>
 
-    <label>
-      Category
-      <select id="category">
-        <option value="">All categories</option>
-      </select>
-    </label>
+  <div class="category-field">
+    <span>Categories</span>
 
-    <label>
-      Number of POIs
-      <input
-        id="number-of-pois"
-        type="number"
-        min="1"
-        value="5"
-        required
-        autocomplete="on"
+    <div class="category-dropdown">
+      <button
+        type="button"
+        id="category-trigger"
+        class="category-trigger"
+        aria-expanded="false"
+        aria-controls="category-options"
       >
-    </label>
+        <span id="category-trigger-label">All categories</span>
+        <span class="category-arrow" aria-hidden="true">▼</span>
+      </button>
 
-    <button type="submit">Plan roadtrip</button>
-  </form>
-
-  <div class="trip-layout">
-    <div id="map"></div>
-
-    <aside id="poi-panel" class="poi-panel">
-      <div class="poi-panel-header">
-        <h2>Points of interest</h2>
-        <p class="poi-panel-subtitle">
-          Plan a roadtrip to discover stops along your route.
-        </p>
-      </div>
-
-      <p class="poi-panel-empty">
-        Your recommended stops will appear here.
-      </p>
-    </aside>
+      <div
+        id="category-options"
+        class="category-options"
+        hidden
+      ></div>
+    </div>
   </div>
+
+  <label>
+    Number of POIs
+    <input
+      id="number-of-pois"
+      type="number"
+      min="1"
+      value="5"
+      required
+      autocomplete="on"
+    >
+  </label>
+
+  <button type="submit">Plan roadtrip</button>
+</form>
+
+<div class="trip-layout">
+  <div id="map"></div>
+
+  <aside id="poi-panel" class="poi-panel">
+    <div class="poi-panel-header">
+      <h2>Points of interest</h2>
+      <p class="poi-panel-subtitle">
+        Plan a roadtrip to discover stops along your route.
+      </p>
+    </div>
+
+    <p class="poi-panel-empty">
+      Your recommended stops will appear here.
+    </p>
+  </aside>
 </div>
