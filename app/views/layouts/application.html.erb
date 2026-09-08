@@ -7,6 +7,8 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <%= favicon_link_tag 'favicon.png', rel: 'icon', type: 'image/png' %>
+
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
@@ -22,7 +24,7 @@
       <header class="planner-header">
         <div class="planner-title">
           <div class="roadtrip-logo" aria-hidden="true">
-            &#x1F3D5;
+            <img src="/indie-campers-logo.png" alt="Indie Campers">
           </div>
 
           <div>

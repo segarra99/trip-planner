@@ -44,9 +44,14 @@ body {
 }
 
 .roadtrip-logo {
-    flex-shrink: 0;
-    font-size: 3rem;
-    line-height: 1;
+    flex: 0 0 200px;
+    width: 200px;
+}
+
+.roadtrip-logo img {
+    display: block;
+    width: 200px;
+    height: auto;
 }
 
 .planner-header h1 {
