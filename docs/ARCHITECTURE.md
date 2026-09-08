@@ -581,3 +581,39 @@ I considered two options:
     Redcarpet converts the existing `README.md` into HTML which is then rendered in a Rails view.
 
 **I opted for option 2** because Redcarpet is already a dependency. Also it looks a lot better.
+
+### Refactoring
+
+#### Selecting the requested POIs
+
+After finishing the frontend bonus, I noticed that the selected POIs were often clustered around the origin and destination. This is because the dataset has many more POIs near the locations than in the middle of the route, so evenly spacing them in the ordered list does not produce an even geographic distribution.
+
+I considered 2 options:
+
+- **Option 1: Select evenly spaced POIs from the ordered list**
+
+    This is simple, but does not account for how POIs are distributed geographically.
+
+- **Option 2: Divide the route into sections and select POIs based on their position along the route**
+
+    This distributes POIs based on the route rather than the number of POIs in each area. Some sections may not contain any POIs.
+
+**I opted for option 2** because I want the selected POIs to be spread across the trip.
+
+The route position is represented between `0.0` and `1.0`, where `0.0` is the origin and `1.0` is the destination. I divide this range into as many buckets as the requested number of POIs and try to select one POI from each bucket.
+
+For example, requesting 4 POIs creates 4 sections:
+
+```text
+Origin                                      Destination
+  |------------|------------|------------|------------|
+       POI 1         POI 2        POI 3        POI 4
+```
+
+When a bucket contains multiple POIs, I select the one closest to its centre.
+
+If a bucket is empty, I fill the remaining slots with unused POIs that are furthest from the POIs already selected. This helps maximise the geographic spread.
+
+The category filter is applied before selection, so only matching POIs are considered.
+
+If fewer POIs are available than requested, I return all matching POIs.
