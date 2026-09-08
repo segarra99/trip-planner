@@ -51,6 +51,6 @@ gem 'csv'
 # API documentation
 gem 'rswag'
 
-gem "importmap-rails", "~> 2.2"
+gem 'importmap-rails', '~> 2.2'
 
-gem "propshaft", "~> 1.3"
+gem 'propshaft', '~> 1.3'
