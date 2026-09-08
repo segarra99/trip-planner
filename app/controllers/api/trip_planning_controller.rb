@@ -3,6 +3,7 @@
 module Api
   class TripPlanningController < BaseController
     before_action :validate_params, only: :index
+    before_action :validate_pagination, only: :index, if: :pagination_requested?
 
     def index
       origin = Location.find(params[:origin])

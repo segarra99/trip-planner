@@ -2,6 +2,8 @@
 
 module Api
   class PoisController < BaseController
+    before_action :validate_pagination, only: :index
+    before_action :validate_category, only: :index
     before_action :validate_coordinates, only: :nearest
 
     def index
@@ -68,6 +70,12 @@ module Api
       return if lat && lng && lat.between?(-90, 90) && lng.between?(-180, 180)
 
       render json: { error: 'valid lat and lng are required' }, status: :bad_request
+    end
+
+    def validate_category
+      return if params[:category].blank? || params[:category].is_a?(String)
+
+      render json: { error: 'category must be a single id' }, status: :bad_request
     end
   end
 end

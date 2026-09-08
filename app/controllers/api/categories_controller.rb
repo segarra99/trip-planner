@@ -2,6 +2,8 @@
 
 module Api
   class CategoriesController < BaseController
+    before_action :validate_pagination
+
     def index
       total = Category.count
       page, per_page = pagination_params

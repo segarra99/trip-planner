@@ -28,5 +28,14 @@ module Api
         total_pages: (total.to_f / per_page).ceil
       }
     end
+
+    def validate_pagination
+      page = Integer(params.fetch(:page, DEFAULT_PAGE), exception: false)
+      per_page = Integer(params.fetch(:per_page, DEFAULT_PER_PAGE), exception: false)
+
+      return if page&.positive? && per_page&.between?(1, 100)
+
+      render json: { error: 'invalid pagination parameters' }, status: :bad_request
+    end
   end
 end

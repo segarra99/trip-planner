@@ -2,6 +2,8 @@
 
 module Api
   class LocationsController < BaseController
+    before_action :validate_pagination, only: :index
+
     def index
       locations = Location.all
       locations = locations.name_matches(params[:name]) if params[:name].present?
