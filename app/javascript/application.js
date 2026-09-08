@@ -19,6 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
     initialize();
 
     form.addEventListener("submit", handleSubmit);
+    originSelect.addEventListener("change", updateLocationOptions);
+    destinationSelect.addEventListener("change", updateLocationOptions);
 
     async function initialize() {
         setFormLoading(true);
@@ -33,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             populateLocations(originSelect);
             populateLocations(destinationSelect);
+            updateLocationOptions();
             populateCategories(categories);
         } catch (error) {
             console.error("Failed to initialize planner:", error);
@@ -114,6 +117,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!origin || !destination) {
             showError("Please select an origin and destination.");
+            return;
+        }
+
+        if (origin.id === destination.id) {
+            showError("Origin and destination must be different.");
             return;
         }
 
@@ -378,5 +386,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         return value.charAt(0).toUpperCase() + value.slice(1);
+    }
+
+    function updateLocationOptions() {
+        const originId = originSelect.value;
+        const destinationId = destinationSelect.value;
+
+        Array.from(originSelect.options).forEach((option) => {
+            option.disabled =
+                option.value === destinationId && destinationId !== "";
+        });
+
+        Array.from(destinationSelect.options).forEach((option) => {
+            option.disabled = option.value === originId && originId !== "";
+        });
     }
 });

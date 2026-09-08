@@ -55,6 +55,11 @@ module Api
                       status: :bad_request
       end
 
+      if params[:origin].to_i == params[:destination].to_i
+        return render json: { error: 'origin and destination must be different' },
+                      status: :bad_request
+      end
+
       number_of_pois = Integer(params[:number_of_pois], exception: false)
 
       return if number_of_pois&.positive?
