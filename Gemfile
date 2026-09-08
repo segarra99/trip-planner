@@ -50,3 +50,5 @@ gem 'csv'
 
 # API documentation
 gem 'rswag'
+
+gem "importmap-rails", "~> 2.2"
