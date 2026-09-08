@@ -644,3 +644,21 @@ I also want to prevent the origin and destination from being the same location.
 I will validate this at the API level and return `400 Bad Request` when they are identical.
 
 In the frontend, the selected location is disabled in the other dropdown to prevent the same selection.
+
+#### Multiple Category Filtering
+
+I decided to refactor the trip-planning category filter to support multiple categories instead of a single category.
+
+I considered two options:
+
+- **Option 1: Match all selected categories**
+
+    A POI would only be returned if it belongs to every selected category. For example, selecting `Beach` and `View` would only return POIs that have both categories.
+
+- **Option 2: Match any selected category**
+
+    A POI would be returned if it belongs to at least one of the selected categories. For example, selecting `Beach` and `View` would return POIs belonging to either category.
+
+**I opted for option 2** because POIs can belong to multiple categories and users are likely selecting multiple interests they want to discover. This gives users a broader set of relevant stops rather than excluding POIs that only match one of their interests.
+
+The API accepts multiple category IDs, the trip-planning service filters POIs against the selected categories, and the frontend category dropdown allows multiple selections.
