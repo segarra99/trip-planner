@@ -30,11 +30,15 @@ RSpec.describe 'Trip Planning API', type: :request do
                   example: 3
                 }
 
-      parameter name: :category,
+      parameter name: :'category[]',
                 in: :query,
                 required: false,
-                description: 'Filter by category ID',
-                schema: { type: :integer, example: 1 }
+                description: 'Filter by category IDs',
+                schema: {
+                  type: :array,
+                  items: { type: :integer },
+                  example: [1, 2]
+                }
 
       parameter name: :page,
                 in: :query,
@@ -220,13 +224,84 @@ RSpec.describe 'Trip Planning API', type: :request do
           let(:origin) { lisboa.id }
           let(:destination) { porto.id }
           let(:number_of_pois) { 2 }
-          let(:category) { beach.id }
+          let(:'category[]') { [beach.id] }
 
           run_test! do |response|
             pois = JSON.parse(response.body)
 
             expect(pois.length).to eq(1)
             expect(pois.first['id']).to eq(beach_poi.id)
+          end
+        end
+
+        context 'when filtering by multiple categories' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
+
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
+
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
+
+          let!(:beach) { Category.create!(name: 'Beach') }
+          let!(:view) { Category.create!(name: 'View') }
+          let!(:museum) { Category.create!(name: 'Museum') }
+
+          let!(:beach_poi) do
+            poi = Poi.create!(
+              name: 'Beach POI',
+              description: 'A beach',
+              location_point: factory.point(-9.0, 39.5)
+            )
+            poi.categories << beach
+            poi
+          end
+
+          let!(:view_poi) do
+            poi = Poi.create!(
+              name: 'View POI',
+              description: 'A viewpoint',
+              location_point: factory.point(-8.9, 39.8)
+            )
+            poi.categories << view
+            poi
+          end
+
+          let!(:museum_poi) do
+            poi = Poi.create!(
+              name: 'Museum POI',
+              description: 'A museum',
+              location_point: factory.point(-8.8, 40.3)
+            )
+            poi.categories << museum
+            poi
+          end
+
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 3 }
+          let(:'category[]') { [beach.id, view.id] }
+
+          run_test! do |response|
+            pois = JSON.parse(response.body)
+
+            expect(pois.map { |poi| poi['id'] }).to contain_exactly(
+              beach_poi.id,
+              view_poi.id
+            )
+            expect(pois.map { |poi| poi['id'] }).not_to include(museum_poi.id)
           end
         end
 
@@ -648,7 +723,7 @@ RSpec.describe 'Trip Planning API', type: :request do
           let(:origin) { origin_location.id }
           let(:destination) { destination_location.id }
           let(:number_of_pois) { 2 }
-          let(:category) { 999_999 }
+          let(:'category[]') { [999_999] }
 
           run_test!
         end

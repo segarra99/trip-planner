@@ -134,11 +134,69 @@ RSpec.describe TripPlanning do
         origin: origin,
         destination: destination,
         number_of_pois: 2,
-        category: beach
+        categories: [beach]
       )
 
       expect(result).to contain_exactly(first_beach, second_beach)
       expect(result).not_to include(museum_poi)
+    end
+
+    it 'returns POIs matching any of the selected categories' do
+      beach = Category.create!(name: 'Beach')
+      view = Category.create!(name: 'View')
+      museum = Category.create!(name: 'Museum')
+
+      beach_poi = Poi.create!(
+        name: 'Beach',
+        description: 'Beach',
+        location_point: factory.point(-9.0, 39.5)
+      )
+      beach_poi.categories << beach
+
+      view_poi = Poi.create!(
+        name: 'Viewpoint',
+        description: 'Viewpoint',
+        location_point: factory.point(-8.9, 39.8)
+      )
+      view_poi.categories << view
+
+      museum_poi = Poi.create!(
+        name: 'Museum',
+        description: 'Museum',
+        location_point: factory.point(-8.8, 40.3)
+      )
+      museum_poi.categories << museum
+
+      result = TripPlanning.plan(
+        origin: origin,
+        destination: destination,
+        number_of_pois: 3,
+        categories: [beach, view]
+      )
+
+      expect(result).to contain_exactly(beach_poi, view_poi)
+      expect(result).not_to include(museum_poi)
+    end
+
+    it 'does not return a POI more than once when it matches multiple categories' do
+      beach = Category.create!(name: 'Beach')
+      view = Category.create!(name: 'View')
+
+      poi = Poi.create!(
+        name: 'Beach View',
+        description: 'Beach with a view',
+        location_point: factory.point(-9.0, 39.5)
+      )
+      poi.categories << [beach, view]
+
+      result = TripPlanning.plan(
+        origin: origin,
+        destination: destination,
+        number_of_pois: 2,
+        categories: [beach, view]
+      )
+
+      expect(result).to eq([poi])
     end
   end
 
