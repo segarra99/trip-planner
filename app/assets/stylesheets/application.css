@@ -29,22 +29,11 @@ body {
 }
 
 .planner-header {
-    margin-bottom: 28px;
-}
-
-.planner-header h1 {
-    margin: 0;
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: #111827;
-}
-
-.planner-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 24px;
+    min-height: 72px;
     margin-bottom: 28px;
 }
 
@@ -79,7 +68,7 @@ body {
     flex-shrink: 0;
 }
 
-.planner-action {
+.nav-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -96,24 +85,53 @@ body {
         color 0.15s ease;
 }
 
-.planner-action-readme {
-    border-color: #7c3aed;
-    color: #7c3aed;
+.nav-button-planner {
+    border-color: #2563eb;
+    color: #2563eb;
 }
 
-.planner-action-readme:hover {
-    background: #7c3aed;
+.nav-button-planner:hover,
+.nav-button-planner.is-current {
+    background: #2563eb;
     color: #fff;
 }
 
-.planner-action-swagger {
+.nav-button-architecture {
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+.nav-button-architecture:hover,
+.nav-button-architecture.is-current {
+    background: #dc2626;
+    color: #fff;
+}
+
+.nav-button-deployment {
+    border-color: #ea580c;
+    color: #ea580c;
+}
+
+.nav-button-deployment:hover,
+.nav-button-deployment.is-current {
+    background: #ea580c;
+    color: #fff;
+}
+
+.nav-button-swagger {
     border-color: #16a34a;
     color: #16a34a;
 }
 
-.planner-action-swagger:hover {
+.nav-button-swagger:hover,
+.nav-button-swagger.is-current {
     background: #16a34a;
     color: #fff;
+}
+
+.nav-button.is-current {
+    cursor: default;
+    pointer-events: none;
 }
 
 #planner-form {
@@ -322,58 +340,6 @@ body {
     line-height: 1.5;
 }
 
-@media (max-width: 1100px) {
-    #planner-form {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    #planner-form button {
-        width: 100%;
-    }
-
-    .trip-layout {
-        grid-template-columns: minmax(0, 1fr) 320px;
-    }
-}
-
-@media (max-width: 800px) {
-    .planner-header {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .planner-actions {
-        width: 100%;
-    }
-
-    .planner-action {
-        flex: 1;
-    }
-
-    .planner {
-        width: min(100% - 28px, 700px);
-        padding: 24px 0;
-    }
-
-    #planner-form {
-        grid-template-columns: 1fr;
-    }
-
-    .trip-layout {
-        grid-template-columns: 1fr;
-    }
-
-    #map {
-        height: 450px;
-        min-height: 0;
-    }
-
-    .poi-panel {
-        height: auto;
-        max-height: 450px;
-    }
-}
-
 .location-marker,
 .poi-marker {
     background: transparent;
@@ -414,27 +380,6 @@ body {
 
 .poi-marker-pin {
     background: #2563eb;
-}
-
-.readme-page {
-    width: min(1000px, calc(100% - 48px));
-    margin: 0 auto;
-    padding: 40px 0 60px;
-}
-
-.readme-header {
-    margin-bottom: 20px;
-}
-
-.readme-back {
-    color: #2563eb;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.readme-back:hover {
-    text-decoration: underline;
 }
 
 .readme-content {
@@ -577,10 +522,55 @@ body {
     height: auto;
 }
 
+@media (max-width: 1100px) {
+    #planner-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    #planner-form button {
+        width: 100%;
+    }
+
+    .trip-layout {
+        grid-template-columns: minmax(0, 1fr) 320px;
+    }
+}
+
 @media (max-width: 800px) {
-    .readme-page {
+    .planner-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .planner-actions {
+        width: 100%;
+    }
+
+    .nav-button {
+        flex: 1;
+    }
+
+    .planner {
         width: min(100% - 28px, 700px);
-        padding: 24px 0 40px;
+        padding: 24px 0;
+    }
+
+    #planner-form {
+        grid-template-columns: 1fr;
+    }
+
+    .trip-layout {
+        grid-template-columns: 1fr;
+    }
+
+    #map {
+        height: 450px;
+        min-height: 0;
+    }
+
+    .poi-panel {
+        height: auto;
+        max-height: 450px;
     }
 
     .readme-content {
@@ -600,26 +590,4 @@ body {
         overflow-x: auto;
         white-space: nowrap;
     }
-}
-
-.back-to-planner {
-    display: inline-flex;
-    align-items: center;
-    height: 40px;
-    padding: 0 16px;
-    border: 1px solid #2563eb;
-    border-radius: 8px;
-    background: #fff;
-    color: #2563eb;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition:
-        background 0.15s ease,
-        color 0.15s ease;
-}
-
-.back-to-planner:hover {
-    background: #2563eb;
-    color: #fff;
 }

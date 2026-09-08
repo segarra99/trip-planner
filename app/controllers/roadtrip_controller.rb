@@ -3,10 +3,16 @@
 class RoadtripController < ApplicationController
   def index; end
 
-  def readme
-    readme_path = Rails.root.join('README.md')
-    @readme_content = File.read(readme_path)
-    @readme_html = render_markdown(@readme_content)
+  def architecture
+    architecture_path = Rails.root.join('docs', 'ARCHITECTURE.md')
+    @architecture_content = File.read(architecture_path)
+    @architecture_html = render_markdown(@architecture_content)
+  end
+
+  def deployment
+    deployment_path = Rails.root.join('docs', 'DEPLOYMENT.md')
+    @deployment_content = File.read(deployment_path)
+    @deployment_html = render_markdown(@deployment_content)
   end
 
   private

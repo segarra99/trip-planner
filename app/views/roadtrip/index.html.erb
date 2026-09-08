@@ -1,21 +1,6 @@
-<div class="planner">
-    <header class="planner-header">
-      <div class="planner-title">
-        <div class="roadtrip-logo" aria-hidden="true">
-          &#x1F3D5;
-        </div>
-
-        <div>
-          <h1>Roadtrip Designer</h1>
-          <p>Plan your route and discover interesting stops along the way.</p>
-        </div>
-      </div>
-
-      <div class="planner-actions">
-        <%= link_to "README", "/readme", class: "planner-action planner-action-readme" %>
-        <%= link_to "Swagger", "/api-docs", class: "planner-action planner-action-swagger" %>
-      </div>
-    </header>
+<% content_for :current_page, "planner" %>
+<% content_for :page_title, "Roadtrip Designer" %>
+<% content_for :page_description, "Plan your route and discover interesting stops along the way." %>
 
   <form id="planner-form">
     <label>

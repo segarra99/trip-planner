@@ -1,25 +1,58 @@
 <!DOCTYPE html>
-
 <html>
   <head>
     <title>Roadtrip Designer - Indie Campers Challenge</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<%= csrf_meta_tags %>
-<%= csp_meta_tag %>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
 
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
-  crossorigin=""
->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    >
 
-<%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-<%= javascript_importmap_tags %>
-
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
   </head>
 
   <body>
-    <%= yield %>
+    <div class="planner">
+      <header class="planner-header">
+        <div class="planner-title">
+          <div class="roadtrip-logo" aria-hidden="true">
+            &#x1F3D5;
+          </div>
+
+          <div>
+            <h1>
+              <%= content_for?(:page_title) ? yield(:page_title) : "Roadtrip Designer" %>
+            </h1>
+
+            <p>
+              <%= content_for?(:page_description) ? yield(:page_description) : "Plan your route and discover interesting stops along the way." %>
+            </p>
+          </div>
+        </div>
+
+        <nav class="planner-actions" aria-label="Main navigation">
+          <%= link_to "Planner", root_path,
+              class: "nav-button nav-button-planner #{'is-current' if content_for?(:current_page) && content_for(:current_page) == 'planner'}" %>
+
+          <%= link_to "Architecture", "/architecture",
+              class: "nav-button nav-button-architecture #{'is-current' if content_for?(:current_page) && content_for(:current_page) == 'architecture'}" %>
+
+          <%= link_to "Deployment", "/deployment",
+              class: "nav-button nav-button-deployment #{'is-current' if content_for?(:current_page) && content_for(:current_page) == 'deployment'}" %>
+
+          <a href="/api-docs" class="nav-button nav-button-swagger">
+            Swagger
+          </a>
+        </nav>
+      </header>
+
+      <%= yield %>
+    </div>
   </body>
 </html>
