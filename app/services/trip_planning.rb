@@ -13,31 +13,61 @@ class TripPlanning
 
   # Returns all POIs within the threshold of the straight line between origin and destination.
   def self.pois_along_route(origin, destination)
+    route_position = route_position_sql(origin, destination)
+
     Poi
       .includes(:categories)
+      .select(
+        "pois.*",
+        Arel.sql("#{route_position} AS route_position")
+      )
       .where(
         route_distance_sql(origin, destination),
         ROUTE_THRESHOLD_METERS
       )
       .order(
-        Arel.sql(
-          "#{route_position_sql(origin, destination)} ASC, pois.id ASC"
-        )
+        Arel.sql("route_position ASC, pois.id ASC")
       )
   end
 
-  # Select a subset of POIs at even intervals along the route.
+  # Select POIs spread across the route.
   def self.select_pois(pois, number_of_pois)
     pois = pois.to_a
-    return pois.to_a if pois.length <= number_of_pois
+
+    return pois if pois.length <= number_of_pois
     return [pois.first] if number_of_pois == 1
 
-    last_index = pois.length - 1
+    buckets = Array.new(number_of_pois) { [] }
 
-    number_of_pois.times.map do |index|
-      position = (index * last_index.to_f / (number_of_pois - 1)).round
-      pois[position]
+    pois.each do |poi|
+      bucket = [(poi.route_position.to_f * number_of_pois).floor, number_of_pois - 1].min
+      buckets[bucket] << poi
     end
+
+    selected = buckets.filter_map.with_index do |bucket, index|
+      next if bucket.empty?
+
+      target = (index + 0.5) / number_of_pois
+
+      bucket.min_by do |poi|
+        (poi.route_position.to_f - target).abs
+      end
+    end
+
+    remaining = pois - selected
+
+    while selected.length < number_of_pois && remaining.any?
+      poi = remaining.max_by do |candidate|
+        selected.map do |selected_poi|
+          (candidate.route_position.to_f - selected_poi.route_position.to_f).abs
+        end.min
+      end
+
+      selected << poi
+      remaining.delete(poi)
+    end
+
+    selected.sort_by { |poi| poi.route_position.to_f }
   end
 
   # Generate SQL to check if a POI is within the threshold of the line.
@@ -64,7 +94,7 @@ class TripPlanning
   end
 
   # Generate SQL to calculate the normalized position of a POI along the route.
-  # A value of 0.0 means at the origin, 1.0 means at the destination.
+  # A value of 0.0 means at the origin, 1.0 at the destination.
   def self.route_position_sql(origin, destination)
     ApplicationRecord.sanitize_sql_array(
       [
