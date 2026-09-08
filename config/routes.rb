@@ -6,6 +6,7 @@ Rails.application.routes.draw do
 
   # UI
   root 'roadtrip#index'
+  get '/readme', to: 'roadtrip#readme'
 
   # API
   scope module: :api do

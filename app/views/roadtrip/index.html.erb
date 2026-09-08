@@ -1,1 +1,69 @@
-<h1>Roadtrip Designer</h1>
+<div class="planner">
+    <header class="planner-header">
+      <div class="planner-title">
+        <div class="roadtrip-logo" aria-hidden="true">
+          &#x1F3D5;
+        </div>
+
+        <div>
+          <h1>Roadtrip Designer</h1>
+          <p>Plan your route and discover interesting stops along the way.</p>
+        </div>
+      </div>
+
+      <div class="planner-actions">
+        <%= link_to "README", "/readme", class: "planner-action planner-action-readme" %>
+        <%= link_to "Swagger", "/api-docs", class: "planner-action planner-action-swagger" %>
+      </div>
+    </header>
+
+  <form id="planner-form">
+    <label>
+      Origin
+      <select id="origin" required></select>
+    </label>
+
+    <label>
+      Destination
+      <select id="destination" required></select>
+    </label>
+
+    <label>
+      Category
+      <select id="category">
+        <option value="">All categories</option>
+      </select>
+    </label>
+
+    <label>
+      Number of POIs
+      <input
+        id="number-of-pois"
+        type="number"
+        min="1"
+        value="5"
+        required
+        autocomplete="on"
+      >
+    </label>
+
+    <button type="submit">Plan roadtrip</button>
+  </form>
+
+  <div class="trip-layout">
+    <div id="map"></div>
+
+    <aside id="poi-panel" class="poi-panel">
+      <div class="poi-panel-header">
+        <h2>Points of interest</h2>
+        <p class="poi-panel-subtitle">
+          Plan a roadtrip to discover stops along your route.
+        </p>
+      </div>
+
+      <p class="poi-panel-empty">
+        Your recommended stops will appear here.
+      </p>
+    </aside>
+  </div>
+</div>
