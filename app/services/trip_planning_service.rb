@@ -5,6 +5,7 @@ class TripPlanningService
   ROUTE_THRESHOLD_METERS = 20_000
 
   # Portion of the route used for evenly distributing selected POIs.
+  # Avoid selecting stops immediately at the origin or destination.
   ROUTE_SELECTION_START = 0.2
   ROUTE_SELECTION_END = 0.8
 
@@ -165,11 +166,17 @@ class TripPlanningService
     remaining = pois - selected
 
     while selected.length < number_of_pois && remaining.any?
-      poi = remaining.max_by do |candidate|
-        selected.map do |selected_poi|
-          (candidate.route_position.to_f - selected_poi.route_position.to_f).abs
-        end.min
-      end
+      poi = if selected.empty?
+              remaining.min_by do |candidate|
+                (candidate.route_position.to_f - 0.5).abs
+              end
+            else
+              remaining.max_by do |candidate|
+                selected.map do |selected_poi|
+                  (candidate.route_position.to_f - selected_poi.route_position.to_f).abs
+                end.min
+              end
+            end
 
       selected << poi
       remaining.delete(poi)

@@ -46,6 +46,9 @@ module Api
             )
             .first
 
+      # If db is empty poi will be nil and no error is thrown, so I do it here
+      return render json: { error: 'POI not found' }, status: :not_found if poi.nil?
+
       render json: poi_json(poi)
     end
 
