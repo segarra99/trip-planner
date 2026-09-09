@@ -3,6 +3,18 @@
 require 'swagger_helper'
 
 RSpec.describe 'Trip Planning API', type: :request do
+  before do
+    allow(RoutingService).to receive(:route) do |origin:, destination:|
+      {
+        'type' => 'LineString',
+        'coordinates' => [
+          [origin.location_point.x, origin.location_point.y],
+          [destination.location_point.x, destination.location_point.y]
+        ]
+      }
+    end
+  end
+
   path '/trip-planning' do
     get 'Plan a trip' do
       tags 'Trip Planning'
@@ -77,6 +89,61 @@ RSpec.describe 'Trip Planning API', type: :request do
           }
         ]
 
+        context 'when returning POI data' do
+          let(:factory) do
+            RGeo::Geographic.spherical_factory(srid: 4326)
+          end
+
+          let!(:lisboa) do
+            Location.create!(
+              name: 'Lisboa',
+              region: 'Lisboa',
+              location_point: factory.point(-9.1393, 38.7223)
+            )
+          end
+
+          let!(:porto) do
+            Location.create!(
+              name: 'Porto',
+              region: 'Porto',
+              location_point: factory.point(-8.6291, 41.1579)
+            )
+          end
+
+          let!(:beach) { Category.create!(name: 'Beach') }
+
+          let!(:poi) do
+            poi = Poi.create!(
+              name: 'Beach POI',
+              description: 'A beach',
+              location_point: factory.point(-9.0, 39.5)
+            )
+            poi.categories << beach
+            poi
+          end
+
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 1 }
+
+          run_test! do |response|
+            body = JSON.parse(response.body)
+            result = body.first
+
+            expect(result['id']).to eq(poi.id)
+            expect(result['name']).to eq('Beach POI')
+            expect(result['latitude']).to eq(39.5)
+            expect(result['longitude']).to eq(-9.0)
+            expect(result['categories']).to include(
+              hash_including(
+                'id' => beach.id,
+                'name' => 'Beach'
+              )
+            )
+            expect(result).not_to have_key('location_point')
+          end
+        end
+
         context 'when enough POIs are available' do
           let(:factory) do
             RGeo::Geographic.spherical_factory(srid: 4326)
@@ -131,7 +198,7 @@ RSpec.describe 'Trip Planning API', type: :request do
 
             expect(pois.length).to eq(2)
             expect(pois.map { |poi| poi['id'] }).to eq(
-              [first_poi.id, third_poi.id]
+              [first_poi.id, second_poi.id]
             )
           end
         end
@@ -224,6 +291,8 @@ RSpec.describe 'Trip Planning API', type: :request do
           let(:origin) { lisboa.id }
           let(:destination) { porto.id }
           let(:number_of_pois) { 2 }
+
+          # Keep the API parameter as category[].
           let(:'category[]') { [beach.id] }
 
           run_test! do |response|
@@ -292,6 +361,8 @@ RSpec.describe 'Trip Planning API', type: :request do
           let(:origin) { lisboa.id }
           let(:destination) { porto.id }
           let(:number_of_pois) { 3 }
+
+          # Keep the API parameter as category[].
           let(:'category[]') { [beach.id, view.id] }
 
           run_test! do |response|
@@ -723,6 +794,7 @@ RSpec.describe 'Trip Planning API', type: :request do
           let(:origin) { origin_location.id }
           let(:destination) { destination_location.id }
           let(:number_of_pois) { 2 }
+
           let(:'category[]') { [999_999] }
 
           run_test!
@@ -768,6 +840,14 @@ RSpec.describe 'Trip Planning API', type: :request do
           let(:origin) { 1 }
           let(:destination) { 1 }
           let(:number_of_pois) { 2 }
+
+          run_test!
+        end
+
+        context 'when number_of_pois is not an integer' do
+          let(:origin) { 1 }
+          let(:destination) { 2 }
+          let(:number_of_pois) { 'abc' }
 
           run_test!
         end

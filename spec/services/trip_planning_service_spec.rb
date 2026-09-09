@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe TripPlanning do
+RSpec.describe TripPlanningService do
   describe '.plan' do
     let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
 
@@ -22,6 +22,18 @@ RSpec.describe TripPlanning do
       )
     end
 
+    before do
+      allow(RoutingService).to receive(:route) do |origin:, destination:|
+        {
+          'type' => 'LineString',
+          'coordinates' => [
+            [origin.location_point.x, origin.location_point.y],
+            [destination.location_point.x, destination.location_point.y]
+          ]
+        }
+      end
+    end
+
     it 'selects POIs within the route threshold' do
       poi = Poi.create!(
         name: 'Along Route',
@@ -29,7 +41,7 @@ RSpec.describe TripPlanning do
         location_point: factory.point(-8.9, 39.8)
       )
 
-      result = TripPlanning.plan(
+      result = TripPlanningService.plan(
         origin: origin,
         destination: destination,
         number_of_pois: 1
@@ -45,7 +57,7 @@ RSpec.describe TripPlanning do
         location_point: factory.point(-3.0, 45.0)
       )
 
-      result = TripPlanning.plan(
+      result = TripPlanningService.plan(
         origin: origin,
         destination: destination,
         number_of_pois: 1
@@ -67,7 +79,7 @@ RSpec.describe TripPlanning do
         location_point: factory.point(-8.8, 40.3)
       )
 
-      result = TripPlanning.plan(
+      result = TripPlanningService.plan(
         origin: origin,
         destination: destination,
         number_of_pois: 2
@@ -95,7 +107,7 @@ RSpec.describe TripPlanning do
         location_point: factory.point(-8.8, 40.3)
       )
 
-      result = TripPlanning.plan(
+      result = TripPlanningService.plan(
         origin: origin,
         destination: destination,
         number_of_pois: 2
@@ -130,7 +142,7 @@ RSpec.describe TripPlanning do
       )
       second_beach.categories << beach
 
-      result = TripPlanning.plan(
+      result = TripPlanningService.plan(
         origin: origin,
         destination: destination,
         number_of_pois: 2,
@@ -167,7 +179,7 @@ RSpec.describe TripPlanning do
       )
       museum_poi.categories << museum
 
-      result = TripPlanning.plan(
+      result = TripPlanningService.plan(
         origin: origin,
         destination: destination,
         number_of_pois: 3,
@@ -189,7 +201,7 @@ RSpec.describe TripPlanning do
       )
       poi.categories << [beach, view]
 
-      result = TripPlanning.plan(
+      result = TripPlanningService.plan(
         origin: origin,
         destination: destination,
         number_of_pois: 2,
@@ -197,6 +209,75 @@ RSpec.describe TripPlanning do
       )
 
       expect(result).to eq([poi])
+    end
+  end
+
+  describe '.route_for' do
+    let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
+
+    let(:origin) do
+      Location.new(
+        name: 'Lisboa',
+        region: 'Lisboa',
+        location_point: factory.point(-9.1393, 38.7223)
+      )
+    end
+
+    let(:destination) do
+      Location.new(
+        name: 'Porto',
+        region: 'Porto',
+        location_point: factory.point(-8.6291, 41.1579)
+      )
+    end
+
+    it 'returns the route from RoutingService when routing succeeds' do
+      route = {
+        'type' => 'LineString',
+        'coordinates' => [
+          [-9.1393, 38.7223],
+          [-9.0, 39.5],
+          [-8.8, 40.3],
+          [-8.6291, 41.1579]
+        ]
+      }
+
+      allow(RoutingService)
+        .to receive(:route)
+        .with(origin: origin, destination: destination)
+        .and_return(route)
+
+      result = described_class.send(
+        :route_for,
+        origin,
+        destination
+      )
+
+      expect(result).to eq(route)
+    end
+
+    it 'falls back to a straight-line route when routing fails' do
+      allow(RoutingService)
+        .to receive(:route)
+        .with(origin: origin, destination: destination)
+        .and_raise(
+          RoutingService::RoutingError,
+          'No driving route could be found.'
+        )
+
+      result = described_class.send(
+        :route_for,
+        origin,
+        destination
+      )
+
+      expect(result).to eq(
+        'type' => 'LineString',
+        'coordinates' => [
+          [-9.1393, 38.7223],
+          [-8.6291, 41.1579]
+        ]
+      )
     end
   end
 
@@ -215,9 +296,11 @@ RSpec.describe TripPlanning do
         poi_at(0.95)
       ]
 
-      result = TripPlanning.send(:select_pois, pois, 3)
+      result = TripPlanningService.send(:select_pois, pois, 3)
 
-      expect(result.map(&:route_position)).to eq([0.20, 0.45, 0.80])
+      expect(result.map(&:route_position)).to eq(
+        [0.20, 0.45, 0.80]
+      )
     end
 
     it 'uses unused POIs to fill empty route sections' do
@@ -227,9 +310,11 @@ RSpec.describe TripPlanning do
         poi_at(0.90)
       ]
 
-      result = TripPlanning.send(:select_pois, pois, 3)
+      result = TripPlanningService.send(:select_pois, pois, 3)
 
-      expect(result.map(&:route_position)).to eq([0.05, 0.10, 0.90])
+      expect(result.map(&:route_position)).to eq(
+        [0.05, 0.10, 0.90]
+      )
     end
 
     it 'returns all POIs when fewer are available than requested' do
@@ -238,7 +323,7 @@ RSpec.describe TripPlanning do
         poi_at(0.8)
       ]
 
-      result = TripPlanning.send(:select_pois, pois, 5)
+      result = TripPlanningService.send(:select_pois, pois, 5)
 
       expect(result).to eq(pois)
     end
@@ -247,7 +332,11 @@ RSpec.describe TripPlanning do
       first = poi_at(0.1)
       second = poi_at(0.9)
 
-      result = TripPlanning.send(:select_pois, [first, second], 1)
+      result = TripPlanningService.send(
+        :select_pois,
+        [first, second],
+        1
+      )
 
       expect(result).to eq([first])
     end
