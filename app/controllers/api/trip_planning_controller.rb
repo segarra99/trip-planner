@@ -10,7 +10,7 @@ module Api
       destination = Location.find(params[:destination])
       categories = Category.find(category_ids)
 
-      pois = TripPlanning.plan(
+      pois = TripPlanningService.plan(
         origin: origin,
         destination: destination,
         number_of_pois: params[:number_of_pois].to_i,
