@@ -677,6 +677,28 @@ I considered two options:
 
 The API accepts multiple category IDs, the trip-planning service filters POIs against the selected categories, and the frontend category dropdown allows multiple selections.
 
+### Route Algorithm
+
+After finishing the exercise, I decided to revisit the trip planning algorithm and see if I could make it more useful for an actual road trip.
+
+In the original implementation, I used a straight line between the origin and destination and considered a POI to be along the route if it was within a certain distance of that line. This was a simple approach and worked well for the scope of the exercise, but it does not represent how someone would actually travel between two locations.
+
+I decided to refactor this part to use the actual driving route instead. The route is now calculated using a routing service, and the resulting road geometry is used with PostGIS to find POIs that are close to the route.
+
+The frontend was already using a routing service to display the driving route on the map, so using the actual road route in the trip planning algorithm also makes the POIs returned by the API more consistent with what is shown to the user.
+
+I kept the original straight-line behaviour as a fallback. The routing service is an external dependency, so if it fails or is unavailable, the application falls back to the previous implementation instead of failing the whole trip planning request.
+
+To keep the responsibilities separated, I extracted the routing logic into its own service. `TripPlanningService` is still responsible for finding and selecting POIs along the route, while `RoutingService` is responsible for communicating with the external routing service and returning the route geometry.
+
+This also keeps the fallback behaviour isolated from the rest of the trip planning logic and makes the external routing dependency easier to replace or change in the future.
+
+### Distance Threshold (Revisited)
+
+After switching the route calculation to use the actual driving route geometry, I tested the trip-planning endpoint again and found that 10km excluded POIs in stretches of the route where they are relatively sparse, leaving fewer options for the bucket-selection algorithm to choose from in those sections.
+
+I raised the threshold to 20km. This brings more POIs into range along sparser stretches of the route without noticeably including POIs that are clearly unrelated to the trip, giving the selection algorithm a better set of candidates to spread across the full route.
+
 ## Future Improvements
 
 The current implementation covers the main requirements of the challenge. If I had more time, I would focus on improving some of the areas below rather than adding more features.
