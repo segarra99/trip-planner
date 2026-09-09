@@ -19,7 +19,7 @@ module Api
 
       return render_paginated(pois) if pagination_requested?
 
-      render json: pois_json(pois)
+      render json: poi_json(pois)
     end
 
     private
@@ -39,17 +39,9 @@ module Api
       pois = pois.drop((page - 1) * per_page).first(per_page)
 
       render json: {
-        pois: pois_json(pois),
+        pois: poi_json(pois),
         pagination: pagination_metadata(page, per_page, total)
       }
-    end
-
-    def pois_json(pois)
-      pois.as_json(
-        except: :location_point,
-        methods: %i[latitude longitude],
-        include: :categories
-      )
     end
 
     def validate_params

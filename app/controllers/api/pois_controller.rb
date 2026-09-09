@@ -20,11 +20,7 @@ module Api
              .offset((page - 1) * per_page)
 
       render json: {
-        pois: pois.as_json(
-          except: :location_point,
-          methods: %i[latitude longitude],
-          include: :categories
-        ),
+        pois: poi_json(pois),
         pagination: pagination_metadata(page, per_page, total)
       }
     end
@@ -32,11 +28,7 @@ module Api
     def show
       poi = Poi.find(params[:id])
 
-      render json: poi.as_json(
-        except: :location_point,
-        methods: %i[latitude longitude],
-        include: :categories
-      )
+      render json: poi_json(poi)
     end
 
     def nearest
@@ -54,11 +46,7 @@ module Api
             )
             .first
 
-      render json: poi.as_json(
-        except: :location_point,
-        methods: %i[latitude longitude],
-        include: :categories
-      )
+      render json: poi_json(poi)
     end
 
     private

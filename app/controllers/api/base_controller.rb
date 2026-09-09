@@ -13,6 +13,23 @@ module Api
       render json: { error: "#{exception.model} not found" }, status: :not_found
     end
 
+    # Serializes a location or collection of locations for API responses.
+    def location_json(location_or_collection)
+      location_or_collection.as_json(
+        except: :location_point,
+        methods: %i[latitude longitude]
+      )
+    end
+
+    # Serializes a POI or collection of POIs for API responses.
+    def poi_json(poi_or_collection)
+      poi_or_collection.as_json(
+        except: :location_point,
+        methods: %i[latitude longitude],
+        include: :categories
+      )
+    end
+
     def pagination_params
       [
         params.fetch(:page, DEFAULT_PAGE).to_i,

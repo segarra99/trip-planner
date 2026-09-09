@@ -17,10 +17,7 @@ module Api
                   .offset((page - 1) * per_page)
 
       render json: {
-        locations: locations.as_json(
-          except: :location_point,
-          methods: %i[latitude longitude]
-        ),
+        locations: location_json(locations),
         pagination: pagination_metadata(page, per_page, total)
       }
     end
@@ -28,10 +25,7 @@ module Api
     def show
       location = Location.find(params[:id])
 
-      render json: location.as_json(
-        except: :location_point,
-        methods: %i[latitude longitude]
-      )
+      render json: location_json(location)
     end
   end
 end
