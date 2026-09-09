@@ -3,9 +3,9 @@
 require 'rails_helper'
 
 RSpec.describe TripPlanningService do
-  describe '.plan' do
-    let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
+  let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
 
+  describe '.plan' do
     let(:origin) do
       Location.create!(
         name: 'Lisboa',
@@ -213,8 +213,6 @@ RSpec.describe TripPlanningService do
   end
 
   describe '.route_for' do
-    let(:factory) { RGeo::Geographic.spherical_factory(srid: 4326) }
-
     let(:origin) do
       Location.new(
         name: 'Lisboa',
@@ -339,6 +337,22 @@ RSpec.describe TripPlanningService do
       )
 
       expect(result).to eq([middle])
+    end
+
+    it 'starts with the POI closest to the middle when no POIs are in the usable route section' do
+      first = poi_at(0.05)
+      middle = poi_at(0.45)
+      last = poi_at(0.90)
+
+      result = TripPlanningService.send(
+        :select_pois,
+        [first, middle, last],
+        2
+      )
+
+      expect(result.map(&:route_position)).to eq(
+        [0.45, 0.90]
+      )
     end
   end
 end

@@ -242,6 +242,36 @@ RSpec.describe 'POIs API', type: :request do
           end
         end
       end
+
+      response '400', 'invalid pagination parameters' do
+        schema type: :object,
+               properties: {
+                 error: {
+                   type: :string
+                 }
+               },
+               required: ['error']
+
+        context 'when page is invalid' do
+          let(:page) { 0 }
+
+          run_test! do |response|
+            expect(JSON.parse(response.body)).to eq(
+              'error' => 'invalid pagination parameters'
+            )
+          end
+        end
+
+        context 'when per_page exceeds the maximum' do
+          let(:per_page) { 101 }
+
+          run_test! do |response|
+            expect(JSON.parse(response.body)).to eq(
+              'error' => 'invalid pagination parameters'
+            )
+          end
+        end
+      end
     end
   end
 
@@ -295,12 +325,24 @@ RSpec.describe 'POIs API', type: :request do
       parameter name: :lat,
                 in: :query,
                 required: true,
-                schema: { type: :number, format: :double, minimum: -90, maximum: 90, example: 38.7223 }
+                schema: {
+                  type: :number,
+                  format: :double,
+                  minimum: -90,
+                  maximum: 90,
+                  example: 38.7223
+                }
 
       parameter name: :lng,
                 in: :query,
                 required: true,
-                schema: { type: :number, format: :double, minimum: -180, maximum: 180, example: -9.1393 }
+                schema: {
+                  type: :number,
+                  format: :double,
+                  minimum: -180,
+                  maximum: 180,
+                  example: -9.1393
+                }
 
       response '200', 'nearest POI found' do
         schema '$ref' => '#/components/schemas/Poi'
@@ -353,6 +395,19 @@ RSpec.describe 'POIs API', type: :request do
           let(:lng) { -9.1393 }
 
           run_test!
+        end
+      end
+
+      response '404', 'POI not found' do
+        schema '$ref' => '#/components/schemas/Error'
+
+        let(:lat) { 38.7223 }
+        let(:lng) { -9.1393 }
+
+        run_test! do |response|
+          expect(JSON.parse(response.body)).to eq(
+            'error' => 'POI not found'
+          )
         end
       end
     end

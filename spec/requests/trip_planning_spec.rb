@@ -3,6 +3,29 @@
 require 'swagger_helper'
 
 RSpec.describe 'Trip Planning API', type: :request do
+  let(:factory) do
+    RGeo::Geographic.spherical_factory(srid: 4326)
+  end
+
+  let!(:lisboa) do
+    Location.create!(
+      name: 'Lisboa',
+      region: 'Lisboa',
+      location_point: factory.point(-9.1393, 38.7223)
+    )
+  end
+
+  let!(:porto) do
+    Location.create!(
+      name: 'Porto',
+      region: 'Porto',
+      location_point: factory.point(-8.6291, 41.1579)
+    )
+  end
+
+  let(:origin) { lisboa.id }
+  let(:destination) { porto.id }
+
   before do
     allow(RoutingService).to receive(:route) do |origin:, destination:|
       {
@@ -90,26 +113,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         ]
 
         context 'when returning POI data' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:beach) { Category.create!(name: 'Beach') }
 
           let!(:poi) do
@@ -122,13 +125,10 @@ RSpec.describe 'Trip Planning API', type: :request do
             poi
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 1 }
 
           run_test! do |response|
-            body = JSON.parse(response.body)
-            result = body.first
+            result = JSON.parse(response.body).first
 
             expect(result['id']).to eq(poi.id)
             expect(result['name']).to eq('Beach POI')
@@ -145,26 +145,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when enough POIs are available' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:first_poi) do
             Poi.create!(
               name: 'First POI',
@@ -189,8 +169,6 @@ RSpec.describe 'Trip Planning API', type: :request do
             )
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 2 }
 
           run_test! do |response|
@@ -204,26 +182,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when fewer POIs are available' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:only_poi) do
             Poi.create!(
               name: 'Only POI',
@@ -232,8 +190,6 @@ RSpec.describe 'Trip Planning API', type: :request do
             )
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 3 }
 
           run_test! do |response|
@@ -245,26 +201,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when filtering by category' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:beach) { Category.create!(name: 'Beach') }
           let!(:museum) { Category.create!(name: 'Museum') }
 
@@ -288,11 +224,7 @@ RSpec.describe 'Trip Planning API', type: :request do
             poi
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 2 }
-
-          # Keep the API parameter as category[].
           let(:'category[]') { [beach.id] }
 
           run_test! do |response|
@@ -304,26 +236,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when filtering by multiple categories' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:beach) { Category.create!(name: 'Beach') }
           let!(:view) { Category.create!(name: 'View') }
           let!(:museum) { Category.create!(name: 'Museum') }
@@ -358,11 +270,7 @@ RSpec.describe 'Trip Planning API', type: :request do
             poi
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 3 }
-
-          # Keep the API parameter as category[].
           let(:'category[]') { [beach.id, view.id] }
 
           run_test! do |response|
@@ -377,26 +285,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when no POIs match the route' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:far_poi) do
             Poi.create!(
               name: 'Far POI',
@@ -405,8 +293,6 @@ RSpec.describe 'Trip Planning API', type: :request do
             )
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 2 }
 
           run_test! do |response|
@@ -415,26 +301,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when no pagination params are provided' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:first_poi) do
             Poi.create!(
               name: 'First POI',
@@ -459,8 +325,6 @@ RSpec.describe 'Trip Planning API', type: :request do
             )
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 5 }
 
           run_test! do |response|
@@ -475,26 +339,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when page and per_page are provided' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:first_poi) do
             Poi.create!(
               name: 'First POI',
@@ -519,8 +363,6 @@ RSpec.describe 'Trip Planning API', type: :request do
             )
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 5 }
           let(:page) { 2 }
           let(:per_page) { 2 }
@@ -542,26 +384,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when only page is provided' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:first_poi) do
             Poi.create!(
               name: 'First POI',
@@ -586,8 +408,6 @@ RSpec.describe 'Trip Planning API', type: :request do
             )
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 5 }
           let(:page) { 1 }
 
@@ -608,26 +428,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when only per_page is provided' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:first_poi) do
             Poi.create!(
               name: 'First POI',
@@ -652,8 +452,6 @@ RSpec.describe 'Trip Planning API', type: :request do
             )
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 5 }
           let(:per_page) { 2 }
 
@@ -674,26 +472,6 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when the requested page is beyond the last page' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:lisboa) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:porto) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
           let!(:first_poi) do
             Poi.create!(
               name: 'First POI',
@@ -718,8 +496,6 @@ RSpec.describe 'Trip Planning API', type: :request do
             )
           end
 
-          let(:origin) { lisboa.id }
-          let(:destination) { porto.id }
           let(:number_of_pois) { 5 }
           let(:page) { 3 }
           let(:per_page) { 2 }
@@ -751,19 +527,7 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when destination is not found' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:origin_location) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let(:origin) { origin_location.id }
+          let(:origin) { lisboa.id }
           let(:destination) { 999_999 }
           let(:number_of_pois) { 2 }
 
@@ -771,30 +535,7 @@ RSpec.describe 'Trip Planning API', type: :request do
         end
 
         context 'when category is not found' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
-          let!(:origin_location) do
-            Location.create!(
-              name: 'Lisboa',
-              region: 'Lisboa',
-              location_point: factory.point(-9.1393, 38.7223)
-            )
-          end
-
-          let!(:destination_location) do
-            Location.create!(
-              name: 'Porto',
-              region: 'Porto',
-              location_point: factory.point(-8.6291, 41.1579)
-            )
-          end
-
-          let(:origin) { origin_location.id }
-          let(:destination) { destination_location.id }
           let(:number_of_pois) { 2 }
-
           let(:'category[]') { [999_999] }
 
           run_test!
@@ -850,6 +591,32 @@ RSpec.describe 'Trip Planning API', type: :request do
           let(:number_of_pois) { 'abc' }
 
           run_test!
+        end
+
+        context 'when page is invalid' do
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 2 }
+          let(:page) { 0 }
+
+          run_test! do |response|
+            expect(JSON.parse(response.body)).to eq(
+              'error' => 'invalid pagination parameters'
+            )
+          end
+        end
+
+        context 'when per_page exceeds the maximum' do
+          let(:origin) { lisboa.id }
+          let(:destination) { porto.id }
+          let(:number_of_pois) { 2 }
+          let(:per_page) { 101 }
+
+          run_test! do |response|
+            expect(JSON.parse(response.body)).to eq(
+              'error' => 'invalid pagination parameters'
+            )
+          end
         end
       end
     end

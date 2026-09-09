@@ -3,6 +3,10 @@
 require 'swagger_helper'
 
 RSpec.describe 'Locations API', type: :request do
+  let(:factory) do
+    RGeo::Geographic.spherical_factory(srid: 4326)
+  end
+
   path '/locations' do
     get 'List locations' do
       tags 'Locations'
@@ -54,10 +58,6 @@ RSpec.describe 'Locations API', type: :request do
                required: %w[locations pagination]
 
         context 'when no pagination params are provided' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
           let!(:lisboa) do
             Location.create!(
               name: 'Lisboa',
@@ -75,9 +75,8 @@ RSpec.describe 'Locations API', type: :request do
           end
 
           run_test! do |response|
-            body = JSON.parse(response.body)
+            body = response_body(response)
 
-            expect(body['locations'].length).to eq(2)
             expect(body['locations'].map { |location| location['name'] })
               .to contain_exactly('Lisboa', 'Porto')
 
@@ -91,10 +90,6 @@ RSpec.describe 'Locations API', type: :request do
         end
 
         context 'when pagination params are provided' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
           let!(:locations) do
             5.times.map do |index|
               Location.create!(
@@ -109,7 +104,7 @@ RSpec.describe 'Locations API', type: :request do
           let(:per_page) { 2 }
 
           run_test! do |response|
-            body = JSON.parse(response.body)
+            body = response_body(response)
 
             expect(body['locations'].map { |location| location['name'] })
               .to eq(['Location 3', 'Location 4'])
@@ -124,10 +119,6 @@ RSpec.describe 'Locations API', type: :request do
         end
 
         context 'when the requested page is beyond the last page' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
           let!(:locations) do
             3.times.map do |index|
               Location.create!(
@@ -142,7 +133,7 @@ RSpec.describe 'Locations API', type: :request do
           let(:per_page) { 2 }
 
           run_test! do |response|
-            body = JSON.parse(response.body)
+            body = response_body(response)
 
             expect(body['locations']).to eq([])
 
@@ -156,10 +147,6 @@ RSpec.describe 'Locations API', type: :request do
         end
 
         context 'when filtering by name' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
           let!(:lisboa) do
             Location.create!(
               name: 'Lisboa',
@@ -179,16 +166,46 @@ RSpec.describe 'Locations API', type: :request do
           let(:name) { 'Lisboa' }
 
           run_test! do |response|
-            body = JSON.parse(response.body)
+            body = response_body(response)
 
-            expect(body['locations'].length).to eq(1)
-            expect(body['locations'].first['name']).to eq('Lisboa')
+            expect(body['locations'].map { |location| location['name'] })
+              .to eq(['Lisboa'])
 
             expect(body['pagination']).to eq(
               'page' => 1,
               'per_page' => 10,
               'total' => 1,
               'total_pages' => 1
+            )
+          end
+        end
+      end
+
+      response '400', 'invalid pagination parameters' do
+        schema type: :object,
+               properties: {
+                 error: {
+                   type: :string
+                 }
+               },
+               required: ['error']
+
+        context 'when page is invalid' do
+          let(:page) { 0 }
+
+          run_test! do |response|
+            expect(response_body(response)).to eq(
+              'error' => 'invalid pagination parameters'
+            )
+          end
+        end
+
+        context 'when per_page exceeds the maximum' do
+          let(:per_page) { 101 }
+
+          run_test! do |response|
+            expect(response_body(response)).to eq(
+              'error' => 'invalid pagination parameters'
             )
           end
         end
@@ -214,10 +231,6 @@ RSpec.describe 'Locations API', type: :request do
         schema '$ref' => '#/components/schemas/Location'
 
         context 'when location exists' do
-          let(:factory) do
-            RGeo::Geographic.spherical_factory(srid: 4326)
-          end
-
           let(:id) do
             Location.create!(
               name: 'Lisboa',
@@ -227,7 +240,7 @@ RSpec.describe 'Locations API', type: :request do
           end
 
           run_test! do |response|
-            body = JSON.parse(response.body)
+            body = response_body(response)
 
             expect(body['id']).to eq(id)
             expect(body['name']).to eq('Lisboa')
@@ -246,5 +259,9 @@ RSpec.describe 'Locations API', type: :request do
         end
       end
     end
+  end
+
+  def response_body(response)
+    JSON.parse(response.body)
   end
 end

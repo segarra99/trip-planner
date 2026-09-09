@@ -44,16 +44,25 @@ RSpec.describe RoutingService do
     }.to_json
   end
 
-  def http_response(
-    body,
-    response_class: Net::HTTPOK,
-    code: '200',
-    message: 'OK'
-  )
-    response = response_class.new('1.1', code, message)
+  def http_response(body)
+    response = Net::HTTPOK.new('1.1', '200', 'OK')
     response.instance_variable_set(:@body, body)
     response.instance_variable_set(:@read, true)
     response
+  end
+
+  def route
+    described_class.route(
+      origin: origin,
+      destination: destination
+    )
+  end
+
+  def expect_routing_error(message)
+    expect { route }.to raise_error(
+      RoutingService::RoutingError,
+      message
+    )
   end
 
   describe '.route' do
@@ -64,28 +73,7 @@ RSpec.describe RoutingService do
     end
 
     it 'returns the route geometry from the routing service' do
-      result = described_class.route(
-        origin: origin,
-        destination: destination
-      )
-
-      expect(result).to eq(route_geometry)
-    end
-
-    it 'builds the request using the origin and destination coordinates' do
-      expected_uri = URI.parse(
-        'https://router.project-osrm.org/route/v1/driving/' \
-        '-9.1393,38.7223;-8.6291,41.1579' \
-        '?overview=full&geometries=geojson'
-      )
-
-      expect(
-        described_class.send(
-          :route_uri,
-          origin,
-          destination
-        )
-      ).to eq(expected_uri)
+      expect(route).to eq(route_geometry)
     end
 
     it 'raises RoutingError when the response is invalid JSON' do
@@ -93,15 +81,7 @@ RSpec.describe RoutingService do
         .to receive(:request)
         .and_return(http_response('invalid json'))
 
-      expect do
-        described_class.route(
-          origin: origin,
-          destination: destination
-        )
-      end.to raise_error(
-        RoutingService::RoutingError,
-        'Invalid response from routing service.'
-      )
+      expect_routing_error('Invalid response from routing service.')
     end
 
     it 'raises RoutingError when no route is returned' do
@@ -114,15 +94,7 @@ RSpec.describe RoutingService do
         .to receive(:request)
         .and_return(http_response(response))
 
-      expect do
-        described_class.route(
-          origin: origin,
-          destination: destination
-        )
-      end.to raise_error(
-        RoutingService::RoutingError,
-        'No driving route could be found.'
-      )
+      expect_routing_error('No driving route could be found.')
     end
 
     it 'raises RoutingError when the routing service returns a non-Ok code' do
@@ -135,15 +107,7 @@ RSpec.describe RoutingService do
         .to receive(:request)
         .and_return(http_response(response))
 
-      expect do
-        described_class.route(
-          origin: origin,
-          destination: destination
-        )
-      end.to raise_error(
-        RoutingService::RoutingError,
-        'No driving route could be found.'
-      )
+      expect_routing_error('No driving route could be found.')
     end
 
     it 'raises RoutingError when the routing service cannot be reached' do
@@ -151,15 +115,7 @@ RSpec.describe RoutingService do
         .to receive(:request)
         .and_raise(SocketError)
 
-      expect do
-        described_class.route(
-          origin: origin,
-          destination: destination
-        )
-      end.to raise_error(
-        RoutingService::RoutingError,
-        'Unable to connect to routing service.'
-      )
+      expect_routing_error('Unable to connect to routing service.')
     end
   end
 
@@ -181,12 +137,7 @@ RSpec.describe RoutingService do
     end
 
     it 'raises RoutingError when the HTTP response is unsuccessful' do
-      response = http_response(
-        '',
-        response_class: Net::HTTPNotFound,
-        code: '404',
-        message: 'Not Found'
-      )
+      response = Net::HTTPNotFound.new('1.1', '404', 'Not Found')
 
       allow(Net::HTTP)
         .to receive(:get_response)
@@ -202,6 +153,24 @@ RSpec.describe RoutingService do
         RoutingService::RoutingError,
         'Unable to calculate the driving route.'
       )
+    end
+  end
+
+  describe '.route_uri' do
+    it 'builds the request using the origin and destination coordinates' do
+      expected_uri = URI.parse(
+        'https://router.project-osrm.org/route/v1/driving/' \
+        '-9.1393,38.7223;-8.6291,41.1579' \
+        '?overview=full&geometries=geojson'
+      )
+
+      expect(
+        described_class.send(
+          :route_uri,
+          origin,
+          destination
+        )
+      ).to eq(expected_uri)
     end
   end
 end

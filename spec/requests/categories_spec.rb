@@ -51,27 +51,8 @@ RSpec.describe 'Categories API', type: :request do
           end
 
           run_test! do |response|
-            body = JSON.parse(response.body)
-            categories = body['categories']
+            body = response_body(response)
 
-            expect(categories.length).to eq(2)
-            expect(categories.map { |category| category['name'] }).to contain_exactly(
-              'Beach',
-              'Museum'
-            )
-          end
-        end
-
-        context 'when no pagination params are provided' do
-          before do
-            Category.create!(name: 'Beach')
-            Category.create!(name: 'Museum')
-          end
-
-          run_test! do |response|
-            body = JSON.parse(response.body)
-
-            expect(body['categories'].length).to eq(2)
             expect(body['categories'].map { |category| category['name'] })
               .to contain_exactly('Beach', 'Museum')
 
@@ -95,7 +76,7 @@ RSpec.describe 'Categories API', type: :request do
           let(:per_page) { 2 }
 
           run_test! do |response|
-            body = JSON.parse(response.body)
+            body = response_body(response)
 
             expect(body['categories'].map { |category| category['name'] })
               .to eq(['Category 3', 'Category 4'])
@@ -120,7 +101,7 @@ RSpec.describe 'Categories API', type: :request do
           let(:per_page) { 2 }
 
           run_test! do |response|
-            body = JSON.parse(response.body)
+            body = response_body(response)
 
             expect(body['categories']).to eq([])
 
@@ -133,6 +114,40 @@ RSpec.describe 'Categories API', type: :request do
           end
         end
       end
+
+      response '400', 'invalid pagination parameters' do
+        schema type: :object,
+               properties: {
+                 error: {
+                   type: :string
+                 }
+               },
+               required: ['error']
+
+        context 'when page is invalid' do
+          let(:page) { 0 }
+
+          run_test! do |response|
+            expect(response_body(response)).to eq(
+              'error' => 'invalid pagination parameters'
+            )
+          end
+        end
+
+        context 'when per_page exceeds the maximum' do
+          let(:per_page) { 101 }
+
+          run_test! do |response|
+            expect(response_body(response)).to eq(
+              'error' => 'invalid pagination parameters'
+            )
+          end
+        end
+      end
     end
+  end
+
+  def response_body(response)
+    JSON.parse(response.body)
   end
 end
