@@ -62,7 +62,6 @@ class TripPlanningService
     pois = pois.to_a
 
     return pois if pois.length <= number_of_pois
-    return [pois.first] if number_of_pois == 1
 
     selected = select_from_buckets(pois, number_of_pois)
     fill_remaining_pois(selected, pois, number_of_pois)

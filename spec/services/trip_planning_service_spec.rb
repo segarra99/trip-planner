@@ -328,17 +328,17 @@ RSpec.describe TripPlanningService do
       expect(result).to eq(pois)
     end
 
-    it 'returns the first POI when one POI is requested' do
+    it 'selects the POI closest to the middle of the route when one POI is requested' do
       first = poi_at(0.1)
-      second = poi_at(0.9)
+      middle = poi_at(0.45)
 
       result = TripPlanningService.send(
         :select_pois,
-        [first, second],
+        [first, middle],
         1
       )
 
-      expect(result).to eq([first])
+      expect(result).to eq([middle])
     end
   end
 end
