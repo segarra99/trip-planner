@@ -48,7 +48,7 @@ Thinking about the best way of storing the categories I reached these 2 options:
 
     Pros for this approach include query flexibility (being able to query for questions like show me all POIs of a specific category), data consistency (all category names live in one table, this means we can normalize data at the source, to avoid differences like "beach" and "Beach"), and future proofing (if in the future we want to add a created_at column or track which POIs most commonly use each category). Only con I see would be database overhead.
 
-**I opted to go with option 2.** While option 1 would be simpler it would limit the future features this app could have.
+**I opted to go with option 2.** While option 1 would be simpler it would limit the future features this app could have. I'm going with HABTM for simplicity, but in the future if needed I could actually create the join model and add fields to it.
 
 ### Database Schema
 
@@ -698,6 +698,10 @@ This also keeps the fallback behaviour isolated from the rest of the trip planni
 After switching the route calculation to use the actual driving route geometry, I tested the trip-planning endpoint again and found that 10km excluded POIs in stretches of the route where they are relatively sparse, leaving fewer options for the bucket-selection algorithm to choose from in those sections.
 
 I raised the threshold to 20km. This brings more POIs into range along sparser stretches of the route without noticeably including POIs that are clearly unrelated to the trip, giving the selection algorithm a better set of candidates to spread across the full route.
+
+### Centralize API response serialization
+
+I noticed some duplication in how API responses were being serialized across the controllers. I extracted the shared serialization logic into methods in the base controller, allowing the controllers to reuse the same logic and keeping the response format consistent.
 
 ## Future Improvements
 
