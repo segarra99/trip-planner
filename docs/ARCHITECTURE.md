@@ -1,4 +1,4 @@
-### Test-Driven Development
+## Test-Driven Development
 
 I'm using TDD by writing the tests before the implementation, rather than just making tests pass for already developed functionality.
 
@@ -16,7 +16,9 @@ For testing I considered 2 options:
 
 **I'll use both.** Integration tests will cover the API behaviour, while unit tests will cover application logic that makes sense to test separately.
 
-### Environment Configuration
+This also gives me flexibility to test the public API contract independently from the internal implementation of services and models.
+
+## Environment Configuration
 
 I considered whether to use `.env` files for configuration.
 
@@ -28,9 +30,11 @@ I considered whether to use `.env` files for configuration.
 
     Keeps all configuration in one place instead of splitting it across files.
 
-**I opted for option 2.** This project only runs locally through Docker Compose, and the database credentials are disposable local values, not real secrets. A `.env` file would add a second place to manage configuration without an actual environment to vary it across. This would need to change if the project introduced real secrets or a deployed environment.
+**I opted for option 2.** This project only runs locally through Docker Compose, and the database credentials are disposable local values, not real secrets. A `.env` file would add a second place to manage configuration without an actual environment to vary it across.
 
-### Data Structure
+This would need to change if the project introduced real secrets or a deployed environment.
+
+## Data Structure
 
 I first chose to start by designing the database structure. 3 things must be stored separately:
 
@@ -42,15 +46,25 @@ Thinking about the best way of storing the categories I reached these 2 options:
 
 - **Option 1: Two table design (no category table)**
 
-    This would mean having a categories column (probably a JSON or text column) on the POI table. The only pro I see for this approach is simplicity. Cons would include being unable to effectively query by category without parsing text and schema changes would be harder in the future (such as adding a created_at field). It would limit future features, like filtering by category popularity.
+    This would mean having a categories column (probably a JSON or text column) on the POI table.
+
+    The main advantage would be simplicity. The disadvantages would include being unable to effectively query by category without parsing text and making future schema changes harder.
+
+    It would also limit future features, such as filtering by category popularity or storing additional category metadata.
 
 - **Option 2: Three tables with a join table**
 
-    Pros for this approach include query flexibility (being able to query for questions like show me all POIs of a specific category), data consistency (all category names live in one table, this means we can normalize data at the source, to avoid differences like "beach" and "Beach"), and future proofing (if in the future we want to add a created_at column or track which POIs most commonly use each category). Only con I see would be database overhead.
+    Pros for this approach include query flexibility, data consistency and future proofing.
 
-**I opted to go with option 2.** While option 1 would be simpler it would limit the future features this app could have. I'm going with HABTM for simplicity, but in the future if needed I could actually create the join model and add fields to it.
+    It allows queries such as finding all POIs belonging to a specific category, keeps category names normalized in one place, and leaves room for additional attributes in the future.
 
-### Database Schema
+    The main disadvantage is additional database structure.
+
+**I opted for option 2.** While option 1 would be simpler, it would limit the future features this application could support.
+
+I'm using HABTM for simplicity. If the relationship later needs attributes of its own, the join table can be promoted to a dedicated model.
+
+## Database Schema
 
 The migrations create 4 tables:
 
@@ -59,190 +73,243 @@ The migrations create 4 tables:
 - `categories`, with a name
 - `categories_pois`, which connects POIs and categories
 
-I chose to keep locations, POIs and categories in separate tables. Categories are connected to POIs through a join table because both sides can have multiple related records. This also makes it easier to query POIs by category without storing and parsing a list of categories on the POI itself.
+I chose to keep locations, POIs and categories in separate tables. Categories are connected to POIs through a join table because both sides can have multiple related records.
 
-Names and regions use string because they are short values, while POI descriptions use text because they do not need an artificial length limit. The name and coordinate fields are required because a record without them would not be useful to the application.
+This also makes it easier to query POIs by category without storing and parsing a list of categories on the POI itself.
+
+Names and regions use string because they are short values, while POI descriptions use text because they do not need an artificial length limit.
+
+The name and coordinate fields are required because a record without them would not be useful to the application.
 
 Locations and POIs store their coordinates as `geometry(Point,4326)`. This keeps the coordinate data in a format PostGIS can use for spatial queries, such as finding nearby POIs.
 
-#### Automatic Timestamps on All Models
+### Automatic Timestamps on All Models
 
 I enabled Rails' automatic timestamps (`t.timestamps`) on all tables:
 
-- locations, pois, categories - all get created_at and updated_at columns by default.
+- locations
+- pois
+- categories
 
-This tracks when records are created and last modified. While not explicitly required for this challenge, it's useful for audit trails and debugging data import issues. If I wanted to disable this for any table, I'd need to add timestamps: false to the migration.
+This tracks when records are created and last modified.
 
-### Storing Location Coordinates
+While not explicitly required for this challenge, it's useful for audit trails and debugging data import issues.
+
+## Storing Location Coordinates
 
 Thinking about how to store coordinates I reached these 3 options:
 
 - **Option 1: Text columns for latitude and longitude**
 
-    Pros are being easy to export in simple formats like CSV or JSON, as well as working with any database system. Cons are being unable to use spatial queries, needing manual math (for distance calculations), and no special indexing (slow for finding nearby locations). This approach throws away the built-in spatial functions of PostGIS, so I'm not moving forward with it.
+    Pros are being easy to export in simple formats like CSV or JSON, as well as working with any database system.
+
+    Cons are being unable to use spatial queries, needing manual math for distance calculations, and no special indexing for spatial searches.
 
 - **Option 2: GeoJSON text column**
 
-    Pros are that this is a standard format that works with any mapping library (like Google Maps or Leaflet), and being easy to export/import in JSON API responses. Cons include having no native spatial functions (like option 1), and the database not recognizing this as a point, even though it contains coordinates.
+    Pros are that this is a standard format that works with mapping libraries and is easy to export/import.
+
+    Cons include having no native spatial functions and the database not recognizing the value as a spatial point.
 
 - **Option 3: Native PostGIS geometry columns**
 
-    Pros include removing manual math by using built-in spatial functions, GiST indexes (we can create GiST indexes to efficiently support spatial queries such as finding nearby POIs), and type safety (db validates that values are valid geometry points).
+    Pros include spatial functions, GiST indexes for spatial queries, and database-level validation of geometry values.
 
-**I opted for option 3** because spatial queries are a core requirement, and PostGIS provides the appropriate data types, functions, and indexing for this use case.
+**I opted for option 3** because spatial queries are a core requirement, and PostGIS provides the appropriate data types, functions and indexing for this use case.
 
-### Preventing Duplicates
+## Preventing Duplicates
 
-Next step is preventing duplicates while importing data, since the CSV structure may change. There are 2 options:
+Next step is preventing duplicates while importing data, since the CSV structure may change.
+
+There are 2 options:
 
 - **Option 1: Check existence before creating**
 
-    This works but is slow for large files, hits the database once for every row.
+    This works but can become slow for large files because it hits the database for every row.
 
 - **Option 2: Upsert in batch with unique constraints**
 
-    This is more efficient since it's a single SQL statement, that will either insert or update each row without creating duplicates. It's faster and handles everything automatically.
+    This is more efficient since the database can insert or update records without first performing a separate existence check.
 
 **I decided to go with option 2.**
 
-For locations and categories I prevent duplicate entries by adding a unique index on their respective name fields, but for pois there's 2 options:
+For locations and categories I prevent duplicate entries by adding a unique index on their respective name fields.
+
+For POIs, there are 2 options:
 
 - **Option 1: Unique constraint on name**
 
-    This would prevent multiple POIs with the same name regardless of location, which doesn't make sense - you could have "Beach" in Lagos and "Beach" in Sintra.
+    This would prevent multiple POIs with the same name regardless of location, which doesn't make sense.
 
 - **Option 2: Composite unique constraint on name + location_point**
 
-    Pros include allowing different POIs to share names at different locations, and enabling unique identification by the combination of name and coordinates. Only con is slightly more complex SQL queries but negligible performance impact.
+    This allows different POIs to share names at different locations while preventing exact duplicates.
 
-**I decided to go with option 2.** This allows "Beach" to exist in multiple cities while still preventing exact duplicates (same name at same location).
+**I decided to go with option 2.**
 
-### Importing Data
+This allows "Beach" to exist in multiple cities while still preventing the same POI from being imported twice.
 
-I then started thinking about the best way to import data from the CSV files. There are 3 options:
+## Importing Data
+
+I considered 3 options:
 
 - **Option 1: Rake task**
 
-    Pros include having a clear separation of concerns (importing data is a separate task), and being easy to test. Cons would include being a bit overkill for quick local development.
+    This provides a clear separation between importing data and seeding the application, and would be easy to test independently.
 
 - **Option 2: Seeds file**
 
-    Pros are simplicity, a single file approach, as well as running a single command and loading everything. Cons are mixing 2 responsibilities (seeding vs importing external data) and being harder to test.
+    This keeps the setup simple and allows the entire initial dataset to be loaded with `rails db:seed`.
 
 - **Option 3: Using a gem**
 
-    Pros include having to write less code and handling easy to miss edge cases. Cons include adding a dependency (another thing to maintain and update), being a bit too much for simple structured CSV data, and having to learn a new library's API.
+    This would reduce the amount of custom import code, but would introduce another dependency for relatively simple CSV data.
 
-**I'll import the CSV files directly in db/seeds.rb** since these represent the initial dataset for the challenge. This keeps setup simple and allows running rails db:seed to populate the database immediately. I thought about using a rake task to enforce separation of concerns, but I think that would be overengineering for this case since these csv files are the initial data for the exercise.
+**I opted to import the CSV files directly in `db/seeds.rb`.**
 
-#### Category Import from CSV
+These files represent the initial dataset for the challenge, so I don't think a separate import system is justified at this stage.
+
+If the application later needed recurring imports, larger datasets or user-provided files, I would revisit this decision and introduce a dedicated import process.
+
+### Category Import from CSV
 
 The POI CSV contains a comma-separated categories column, which is parsed during import:
 
-1. Categories are extracted, deduplicated, and inserted into the categories table.
-2. POIs are then associated with their categories via the join table.
-3. If a category already exists, it's not duplicated.
+1. Categories are extracted and deduplicated.
+2. Categories are inserted into the categories table if they do not already exist.
+3. POIs are associated with their categories through the join table.
 
-This two step approach ensures data consistency while handling edge cases like empty or duplicate category names in the CSV.
+This keeps category data normalized while handling empty or duplicate category values in the source data.
 
-### Import Error Handling
+## Import Error Handling
+
+I considered 3 options:
 
 - **Option 1: Log and skip bad rows**
 
-    This is the choice that makes sense when faulty data is expected.
+    This can make sense when faulty data is expected and individual rows can safely be ignored.
 
 - **Option 2: Transaction rollback**
 
-    Pros include data consistency, but cons are that it will be slow for large datasets, and that we may need to re-import everything after failure. It's an all or nothing approach.
+    This provides all-or-nothing behaviour, but means the entire import fails because of one invalid record.
 
 - **Option 3: Import after validation**
 
-    With this option we first validate data, and only import it after ensuring the data is good. Pros are having clear failures (we can see exactly what's wrong before importing, and fix it), this also works towards good user experience. Cons include passing over data twice (slow for large files) and still having the all or nothing approach of option 2.
+    Validate the dataset first and only write to the database after the data has passed validation.
 
-**I'll validate the CSV structure and content before importing.** This catches missing columns, invalid coordinates, and other issues before touching the database. For this small dataset, it's only a few extra lines of code and gives clear feedback about what needs fixing.
+**I opted for option 3.**
 
-### API Structure
+This catches missing columns, invalid coordinates and other structural problems before modifying the database.
+
+For this small dataset, the additional validation cost is negligible and gives clearer feedback when the source data is invalid.
+
+## API Structure
 
 For the API, I considered whether to treat trip planning as a traditional resource or as an operation.
 
 - **Option 1: Resource-based controllers**
 
-    This would mean having controllers that map directly to database resources, such as LocationsController and PoisController. This fits Rails conventions well and makes the API endpoints easy to understand. Trip planning would still need a separate endpoint because a trip is not stored in the database.
+    Controllers map directly to persisted resources such as Locations and POIs.
 
 - **Option 2: A single controller for the entire API**
 
-    This would keep all endpoints in one place, but would mix responsibilities and make the controller harder to maintain as more functionality is added.
+    This would keep all endpoints together, but would mix unrelated responsibilities.
 
-**I opted for separate controllers** based on the main API responsibilities. Locations and POIs are persisted resources, so they have their own controllers. Trip planning is an operation rather than a persisted resource, so it will have its own controller without requiring a Trip model.
+**I opted for separate controllers.**
 
-### API Response Format
+Locations and POIs are persisted resources, so they have their own controllers.
+
+Trip planning is an operation rather than a persisted resource, so it has its own controller without requiring a Trip model.
+
+## API Response Format
 
 I considered whether the controllers should return HTML views or JSON responses.
 
 - **Option 1: HTML views**
 
-    This would allow Rails to render the frontend directly from controller actions. This could be useful if I decide to implement the frontend bonus using Rails views, but it would not directly satisfy the REST API requirement.
+    This would allow Rails to render the frontend directly from controller actions.
 
 - **Option 2: JSON responses**
 
-    This keeps the backend focused on providing the REST API and allows any frontend to consume the API independently. It also leaves the option of adding a Rails-based frontend later without changing the underlying data model.
+    This keeps the backend focused on providing the REST API and allows any frontend to consume the API independently.
 
-**I opted for JSON responses** because the core requirement is a REST API. If I implement the frontend bonus later, I can add Rails views without changing the database structure or the API's underlying data.
+**I opted for JSON responses** because the core requirement is a REST API.
 
-### Error Handling
+The frontend can therefore be implemented independently of the underlying API and database structure.
+
+## Error Handling
 
 The API returns appropriate HTTP status codes for invalid requests and missing resources.
 
 - **400 Bad Request:** invalid or missing request parameters.
 - **404 Not Found:** the requested resource does not exist.
 
-I considered how to structure error responses for invalid requests and missing resources. There are 2 options:
+I considered how to structure error responses for invalid requests and missing resources.
 
 - **Option 1: Include full exception details**
 
-    This would expose internal implementation details like model names and stack traces, which could be a security risk in production.
+    This could expose internal implementation details such as model names and stack traces.
 
-- **Option 2: Simplified error messages with just the resource name (for 404) or generic error field (for validation errors)**
+- **Option 2: Simplified error messages**
 
-    Pros include hiding internal implementation details, cleaner responses for frontend consumption, and easier to customize per error type. Cons would be less detailed debugging information during development.
+    Return a consistent `error` field without exposing internal implementation details.
 
-**I opted for option 2.** The API returns `{ "error": "<message>" }` for validation errors and `{ "error": "<Model> not found" }` for missing resources. This keeps responses clean while still providing actionable feedback.
+**I opted for option 2.**
 
-### Locations
+The API returns:
 
-I will start by implementing the Locations before the more complex POI and trip planning endpoints. Locations are a relatively simple resource and this provides a way to establish the structure and response format before implementing the more complex spatial queries.
+```json
+{ "error": "<message>" }
+```
 
-The API will initially support:
+for validation errors and:
+
+```json
+{ "error": "<Model> not found" }
+```
+
+for missing resources.
+
+This keeps the API response clean while still providing useful information to consumers.
+
+## Locations
+
+I started by implementing Locations before the more complex POI and trip planning endpoints.
+
+Locations are a relatively simple resource, which establishes the general API structure and response format before introducing spatial queries.
+
+The API supports:
 
 - `GET /locations` to browse available locations, with an optional name filter
 - `GET /locations/:id` to view a specific location
 
-### Categories
+## Categories
 
-The only endpoint I'll do for now is:
+The API supports:
 
-- `GET /categories` to fetch all categories
+- `GET /categories` to fetch categories
 
-I'm creating this endpoint just so that a future frontend may fetch it for filtering purposes, instead of hardcoding them.
+The endpoint allows a future frontend to retrieve the available categories instead of hardcoding them.
 
-### POIs
+## POIs
 
-I will implement the POI endpoints after Locations and Categories. POIs are more complex because they have categories and geographic coordinates.
+POIs are more complex because they have both categories and geographic coordinates.
 
-The API will support:
+The API supports:
 
-- `GET /pois` to browse available POIs, with optional name and category filter
+- `GET /pois` to browse available POIs, with optional name and category filters
 - `GET /pois/:id` to view a specific POI
+- `GET /pois/nearest` to find the closest POI to a given coordinate
 
-### POI Response Consistency
+## POI Response Consistency
 
 All endpoints return POIs using the same response structure, including categories.
 
-This keeps the API consistent and allows the Poi schema to be reused across endpoints.
+This keeps the API consistent and allows the same POI schema to be reused across endpoints.
 
-### API Coordinate Response
+## API Coordinate Response
 
-I considered how to return coordinates in the API. There are 2 options:
+I considered how to return coordinates in the API.
 
 - **Option 1: Return the PostGIS point**
 
@@ -252,135 +319,195 @@ I considered how to return coordinates in the API. There are 2 options:
 
     This is simpler for API consumers and keeps the database representation internal.
 
-**I opted for option 2.** The API returns latitude and longitude while PostGIS geometry is used internally for spatial queries.
+**I opted for option 2.**
 
-### Trip Planning
+The API returns latitude and longitude while PostGIS geometry is used internally for spatial queries.
 
-This is the most complex part of the API because it needs to use the geographic coordinates of the origin, destination, and POIs to determine which POIs are along the route and return them in order.
+## API Documentation
 
-The API will support:
+The API is documented using Swagger/OpenAPI.
+
+The documentation describes the available endpoints, parameters, response structures and error responses.
+
+I chose to keep the API documentation close to the implementation rather than maintaining a completely separate manual specification.
+
+This makes the API contract easier to inspect during development and provides an interactive way to try the endpoints.
+
+The Swagger documentation is also exposed through the application's shared navigation.
+
+## Trip Planning
+
+This is the most complex part of the API because it needs to use the geographic coordinates of the origin, destination and POIs to determine which POIs are along the route and return them in order.
+
+The API supports:
 
 - `GET /trip-planning` to plan a route between an origin and destination, returning the requested number of POIs along the route, with an optional category filter
 
-The challenge does not define exactly how to decide whether a POI is along the route, or how to choose the requested number when there are more POIs available. I will make these choices based on keeping the implementation simple while still making the result useful.
+The challenge does not define exactly how to decide whether a POI is along the route, or how to choose the requested number when there are more POIs available.
 
-#### Determining whether a POI is along the route
+I therefore made these decisions based on keeping the implementation simple while still producing useful results.
+
+### Determining whether a POI is along the route
 
 There are a few possible approaches:
 
 - **Option 1: Straight-line route + threshold**
 
-    Consider a POI part of the route if it is within a certain distance of the line. This is simple and can be handled entirely with PostGIS.
+    Consider a POI part of the route if it is within a certain distance of the line between the origin and destination.
+
+    This is simple and can be handled entirely with PostGIS.
 
 - **Option 2: Actual driving route**
 
-    Use a routing service to calculate the road route and find POIs near it. This would be more realistic, but adds an external dependency and more complexity.
+    Use a routing service to calculate the road route and find POIs near it.
 
-**I will use the straight line with a distance threshold.** It keeps the implementation self-contained and is sufficient for the scope of this challenge.
+    This would be more realistic, but adds an external dependency and additional complexity.
 
-The route is defined by the origin and destination. I will keep this route fixed when evaluating and ordering POIs rather than recalculating it after each selected POI. Recalculating the route after each stop would turn the problem into planning a sequence of intermediate stops, which is beyond the scope of the challenge.
+**I originally chose option 1** because it kept the trip-planning algorithm self-contained and was sufficient for the initial scope of the challenge.
 
-#### Distance threshold
+**(Refactored — see `Refactoring → Route Algorithm`.)**
 
-The challenge does not define a distance threshold for determining whether a POI is along the route. I considered deriving the threshold from the distance between POIs and the provided locations, but the POIs are not explicitly associated with a location and some are intentionally distributed far beyond the nearest listed location. Using the furthest such distance would therefore make the route corridor unnecessarily broad.
+The implementation now uses the actual driving route when the routing service is available, while retaining the original straight-line approach as a fallback.
 
-Instead, I will use a fixed **10 km threshold** based on the geographic distribution of the provided dataset. This provides a reasonable tolerance for considering a POI to be along a trip without including POIs that are significantly off the route.
+### Distance threshold
 
-The same threshold is applied to the fixed origin-to-destination line for each trip.
+The original implementation used a fixed **10 km threshold** based on the geographic distribution of the provided dataset.
 
-#### Service object structure
+This was intended to provide a reasonable tolerance without including POIs that were significantly away from the trip.
 
-The trip planning logic will be handled by a dedicated service because it contains enough application logic to keep it out of the controller.
+**(Refactored — see `Refactoring → Distance Threshold`.)**
 
-There are a few ways I could structure the trip planning service:
+After switching to actual route geometry, I increased the threshold to **20 km** because some stretches of the route had relatively few POIs within 10 km.
 
-- **Option 1: Use an instance with initialize to store the origin, destination, category, and number of POIs, then call plan.**
+### Service object structure
 
-- **Option 2: Use plan as a class method and pass everything it needs directly to it.**
+The trip planning logic is handled by a dedicated service because it contains enough application logic to keep it out of the controller.
 
-Option 1 makes more sense when the service needs to keep state or dependencies that are shared across several operations. Option 2 is simpler when the operation is stateless and everything it needs is provided as input.
+There are a few ways I could structure the service:
 
-**I will use Option 2** because trip planning is currently a single stateless operation. There is no useful state that needs to be stored between method calls, so creating a service instance just to call `plan` would add unnecessary structure.
+- **Option 1: Use an instance with `initialize`**
 
-#### Selecting the requested POIs
+    Store the origin, destination, category and number of POIs, then call `plan`.
+
+- **Option 2: Use `plan` as a class method**
+
+    Pass everything the operation needs directly to it.
+
+Option 1 makes more sense when a service needs to retain state or share dependencies across multiple operations.
+
+Option 2 is simpler when the operation is stateless and everything it needs is provided as input.
+
+**I use option 2** because trip planning is a stateless operation. Creating an instance just to call `plan` would add structure without providing a useful benefit.
+
+### Selecting the requested POIs
 
 If more POIs are available than requested, there are a few options:
 
 - **Option 1: Return the ones closest to the origin.**
-
 - **Option 2: Return the ones closest to the destination.**
-
 - **Option 3: Spread them across the route.**
 
-The first two are simple, but can result in all the stops being concentrated in one part of the trip. I will instead spread the selected POIs across the route, choosing them at roughly even intervals.
+The first two are simple, but can result in all the stops being concentrated in one part of the trip.
 
-Regarding how to spread them there are 2 options:
+**I originally used evenly spaced positions in the ordered POI list.**
 
-- **Option 1: Select POIs at roughly even positions in the ordered list.**
+This was a simple approximation that spread results reasonably well for the initial implementation.
 
-- **Option 2: Divide the route into sections and select POIs based on their geographic position along the route.**
+**(Refactored — see `Refactoring → Selecting the requested POIs`.)**
 
-**I will use Option 1** because it keeps the implementation simple while still spreading the selected POIs across the route. This is an approximation rather than a true geographic distribution: if several POIs are clustered together, they can still be closer to each other than the selected positions suggest. If I still have time after doing the bonus I think I'll revisit this.
+The implementation now divides the route into sections and attempts to select POIs based on their position along the route.
 
-The category filter will be applied before selecting the POIs, so only matching POIs are considered.
+This better represents the intent of selecting stops across the trip rather than simply selecting positions in an ordered collection.
 
-If fewer POIs are available than requested, I will return all matching POIs.
+The category filter is applied before selecting POIs, so only matching POIs are considered.
 
-### Find Nearest POI
+If fewer POIs are available than requested, all matching POIs are returned.
 
-The API will support:
+## Find Nearest POI
 
-- `GET /pois/nearest` to find the closest POI to a given latitude and longitude
+The API supports:
 
-There are a couple of ways to structure the endpoint:
+- `GET /pois/nearest`
 
-- **Option 1: Add nearest to PoisController as a collection action.**
+I considered two ways to structure the endpoint:
 
+- **Option 1: Add `nearest` to `PoisController` as a collection action.**
 - **Option 2: Create a separate controller for the endpoint.**
 
-**I will use Option 1** because the endpoint is still operating on the POI collection. A separate controller would add unnecessary structure.
+**I opted for option 1** because the endpoint is still operating on the POI collection.
 
-For the implementation, there are also two options:
+A separate controller would add structure without providing a meaningful separation of responsibility.
 
-- **Option 1: Keep the query in PoisController.**
+For the implementation, I also considered:
 
+- **Option 1: Keep the query in `PoisController`.**
 - **Option 2: Create a separate service for finding the nearest POI.**
 
-**I will use Option 1** because the logic is simple: validate the coordinates and run a single PostGIS query. A service would be a bit overkill for this operation.
+**I opted for option 1** because the logic is simple: validate the coordinates and execute a single PostGIS query.
 
-The distance will be calculated using PostGIS rather than in Ruby.
+A service would be unnecessary abstraction for this operation.
 
-### Pagination
+The distance is calculated using PostGIS rather than Ruby.
 
-I added pagination to `/locations`, `/categories` and `/pois` since these are collection endpoints and could contain a large number of records. These endpoints are paginated by default, using a default page and page size.
+## Pagination
+
+I added pagination to `/locations`, `/categories` and `/pois` because these are collection endpoints and could contain a large number of records.
+
+These endpoints are paginated by default using a default page and page size.
 
 For `/trip-planning`, I considered 2 options:
 
 - **Option 1: Do not paginate**
 
-    This keeps the endpoint simple and allows the frontend to receive all the POIs selected for the trip in a single response.
+    This keeps the endpoint simple and allows the frontend to receive all selected POIs in a single response.
 
 - **Option 2: Paginate**
 
-    This would make the endpoint behave more like the other collection endpoints, but could require multiple requests when the frontend needs all the POIs for the map.
+    This makes the endpoint behave more like the other collection endpoints, but could require multiple requests when the frontend needs all the POIs for the map.
 
-**I decided to use a middle ground:** `/trip-planning` is not paginated by default, but supports pagination when `page` or `per_page` is provided. This allows the map to receive all selected POIs by default, while still supporting paginated results when needed.
+**I decided to use a middle ground.**
 
-I'll be applying the pagination in Ruby after the trip-planning query has selected and ordered the POIs. This keeps the route selection and ordering deterministic before pagination is applied.
+`/trip-planning` is not paginated by default, but supports pagination when `page` or `per_page` is provided.
 
-### CI/CD
+This allows the frontend to receive all selected POIs by default while still supporting paginated results when needed.
 
-This project uses GitHub Actions for continuous integration. The workflow runs on every push and pull request, and consists of three steps:
+Pagination is applied after the trip-planning query has selected and ordered the POIs.
 
-1. **Build** the test Docker image (`docker compose build test`), ensuring the image used for linting and testing reflects the current `Gemfile.lock` and Dockerfile.
-2. **Lint** the codebase with RuboCop (`docker compose --profile test run --rm --no-deps test bundle exec rubocop`), run without the `db` service dependency since linting doesn't require a database connection.
-3. **Test** the application (`docker compose --profile test run --rm test`), running the full RSpec suite against a PostgreSQL/PostGIS database.
+This keeps route selection and ordering deterministic before pagination is applied.
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration.
+
+The workflow runs on every push and pull request and consists of three steps:
+
+1. **Build** the test Docker image:
+
+    ```bash
+    docker compose build test
+    ```
+
+2. **Lint** the codebase with RuboCop:
+
+    ```bash
+    docker compose --profile test run --rm --no-deps test bundle exec rubocop
+    ```
+
+    The database dependency is not required for linting.
+
+3. **Test** the application:
+
+    ```bash
+    docker compose --profile test run --rm test
+    ```
+
+    This runs the full RSpec suite against PostgreSQL/PostGIS.
 
 The workflow definition lives at `.github/workflows/ci.yml`.
 
 ### Running the same checks locally
 
-To reproduce the CI pipeline on your machine before pushing:
+To reproduce the CI pipeline locally before pushing:
 
 ```bash
 docker compose build test
@@ -388,7 +515,7 @@ docker compose --profile test run --rm --no-deps test bundle exec rubocop
 docker compose --profile test run --rm test
 ```
 
-### Frontend
+## Frontend
 
 Since the frontend is a bonus, I wanted to keep it simple and avoid adding unnecessary infrastructure.
 
@@ -396,43 +523,55 @@ I considered two options:
 
 - **Option 1: Separate frontend application**
 
-    This could use React and communicate with the Rails API, but would add another application, dependencies, build system and Docker service.
+    This could use React and communicate with the Rails API, but would add another application, dependencies, a build system and another Docker service.
 
 - **Option 2: Rails-based frontend**
 
     Rails can render the frontend using its existing view layer, keeping everything in one application.
 
-**I opted for option 2** because I want to learn a different skill, and I'm already familiar with JavaScript frontend frameworks. It is also enough for the scope of the bonus.
+**I opted for option 2** because the bonus is small enough that a separate frontend application would add more complexity than value.
 
-I then considered two ways for the frontend to get data:
+It also gave me an opportunity to work with a Rails-based frontend rather than defaulting to a framework I already know.
+
+### Frontend API Access
+
+I considered two ways for the frontend to get data:
 
 - **Option 1: Use a Rails controller directly**
 
-    The controller could access the models and services and pass the data to the view.
+    The controller could access models and services and pass the data to the view.
 
 - **Option 2: Consume the existing REST API**
 
     The frontend can call the existing API endpoints and use their responses.
 
-**I opted for option 2** because the API already provides the functionality the frontend needs, so there is no need to duplicate it in another controller. It also means the frontend uses the same interface that any other client would use.
+**I opted for option 2** because the API already provides the functionality the frontend needs.
 
-The frontend will only use the endpoints it needs, such as `/locations`, `/categories` and `/trip-planning`. Endpoints such as `/pois/nearest` remain available as API functionality but are not needed for the frontend.
+This avoids duplicating business logic in another controller and means the frontend consumes the same interface available to any other API client.
 
-#### JavaScript vs TypeScript
+The frontend uses endpoints such as:
 
-I considered two options for the frontend language:
+- `/locations`
+- `/categories`
+- `/trip-planning`
+
+Endpoints such as `/pois/nearest` remain available as API functionality but are not needed by the frontend.
+
+### JavaScript vs TypeScript
+
+I considered two options:
 
 - **Option 1: TypeScript**
 
-    This would provide type safety, but would require additional tooling and configuration.
+    Provides type safety but requires additional tooling and configuration.
 
 - **Option 2: JavaScript**
 
-    This is already enough for the scope of the frontend and does not require additional tooling.
+    Is sufficient for the size and scope of the frontend without introducing additional tooling.
 
-**I opted for option 2** because the frontend is a small bonus feature, so I don't think the additional setup and complexity of TypeScript is justified for this project.
+**I opted for option 2** because the frontend is a small bonus feature and the additional setup of TypeScript is not justified for the current scope.
 
-#### Frontend Technologies
+### Frontend Technologies
 
 The frontend uses:
 
@@ -444,51 +583,53 @@ The frontend uses:
 - OpenStreetMap
 - OSRM
 
-#### Frontend Structure
+### Frontend Structure
 
 I considered whether to split the JavaScript into multiple files.
 
 - **Option 1: Multiple JavaScript files**
 
-    This would separate responsibilities such as API requests, map handling and UI rendering. This would make each file smaller, but would add more structure and imports.
+    This would separate responsibilities such as API requests, map handling and UI rendering.
 
 - **Option 2: One JavaScript file**
 
-    This keeps the frontend simple and makes the whole flow easy to follow in one place. The downside is that the file could become harder to maintain if the frontend grows significantly.
+    This keeps the frontend simple and makes the complete flow easy to follow.
 
-**I opted for option 2** because the frontend is small enough that splitting it into multiple files would add more complexity than value.
+**I opted for option 2** because the frontend is currently small enough that splitting it into multiple files would add more structure than value.
 
-#### Map
+If the frontend grows significantly, I would revisit this decision.
+
+### Map
 
 I considered a few options for displaying the map:
 
 - **Option 1: Google Maps**
 
-    This is a mature mapping platform with routing support, but requires an API key and adds a dependency on Google's services.
+    Mature mapping and routing functionality, but requires an API key and adds a dependency on Google's services.
 
 - **Option 2: Mapbox**
 
-    This provides maps and routing, but also requires an API key and adds another external service.
+    Provides maps and routing, but also requires an API key and adds another external service.
 
 - **Option 3: Leaflet with OpenStreetMap**
 
-    Leaflet is a lightweight mapping library and OpenStreetMap provides the map data. This gives me the functionality needed without adding a large frontend dependency.
+    Leaflet is a lightweight mapping library and OpenStreetMap provides the map data.
 
-**I opted for option 3** because it is simple, open source and works well with the existing Rails frontend.
+**I opted for option 3** because it provides the required functionality without adding a large frontend dependency or requiring an API key.
 
-#### Map Markers
+### Map Markers
 
 I considered two options:
 
 - **Option 1: Leaflet default markers**
 
-    This would be simpler, but all points would look the same.
+    Simpler, but all points would look the same.
 
 - **Option 2: Custom Leaflet markers**
 
-    Leaflet's `divIcon` allows the markers to be created with HTML and styled with CSS. This also allows POI numbers to be displayed directly on the map.
+    Leaflet's `divIcon` allows markers to be created with HTML and styled with CSS.
 
-**I opted for option 2** because it makes the different types of points easier to identify.
+**I opted for option 2** because it allows origin, destination and POIs to be visually distinguished and allows POI numbers to be displayed directly on the map.
 
 The markers use:
 
@@ -496,25 +637,27 @@ The markers use:
 - Red for the destination
 - Blue numbered markers for POIs
 
-#### Route Display
+### Route Display
+
+I considered two options:
 
 - **Option 1: Straight lines**
 
-    This is simple and does not require an external routing service. The downside is that a straight line does not represent the route a vehicle would actually take.
+    Simple and does not require an external routing service, but does not represent the route a vehicle would actually take.
 
 - **Option 2: Route following roads**
 
-    A routing service can calculate a driving route between the origin, POIs and destination. This gives a more realistic representation of the trip, but adds an external dependency.
+    A routing service can calculate a driving route between the origin, POIs and destination.
 
-**I opted for option 2** because the frontend is intended to represent a roadtrip, so showing the actual driving route is more useful than showing straight lines between points.
+**I opted for option 2** because the frontend represents a road trip, so showing the actual driving route is more useful than showing straight lines between points.
 
-#### Routing Service
+### Routing Service
 
 For calculating the driving route I considered:
 
 - **Option 1: OSRM**
 
-    Open-source routing engine that supports driving routes and multiple waypoints. It can return the route as GeoJSON, which can be displayed directly by Leaflet.
+    Open-source routing engine that supports driving routes and multiple waypoints.
 
 - **Option 2: GraphHopper**
 
@@ -526,19 +669,29 @@ For calculating the driving route I considered:
 
 **I opted for option 1** because OSRM provides the functionality needed for this challenge with minimal setup.
 
-The frontend sends the origin, selected POIs and destination to OSRM. The returned road geometry is then displayed using Leaflet.
+The frontend sends the origin, selected POIs and destination to OSRM.
 
-#### Trip Planning vs Route Display
+The returned road geometry is then displayed using Leaflet.
 
-The backend and frontend use the route for different purposes.
+### Trip Planning vs Route Display
 
-The backend uses the straight origin-to-destination line and the 10 km threshold to decide which POIs are along the trip.
+Originally, the backend and frontend intentionally used different definitions of the route.
 
-The frontend uses OSRM to display the resulting trip as an actual driving route.
+The backend used the straight origin-to-destination line and a distance threshold to determine which POIs were along the trip.
 
-I chose to keep these separate because changing the backend POI selection to use a routing service would make the trip-planning algorithm more complex and introduce an external dependency into the API.
+The frontend used OSRM to display the actual driving route.
 
-#### POI Panel
+This was initially a deliberate trade-off: keeping routing out of the backend made the API simpler and avoided an external dependency.
+
+**(Refactored — see `Refactoring → Route Algorithm`.)**
+
+The backend now also uses the actual driving route when possible.
+
+This makes the POIs selected by the API more consistent with the route shown by the frontend.
+
+The original straight-line algorithm remains available as a fallback when the routing service cannot be used.
+
+### POI Panel
 
 I wanted the selected POIs to be visible without requiring the user to click each map marker.
 
@@ -546,25 +699,27 @@ I considered two options:
 
 - **Option 1: Show POIs only on the map**
 
-    This keeps the interface smaller, but the user needs to interact with the markers to see the POI information.
+    This keeps the interface smaller, but requires the user to interact with markers to see the POI information.
 
 - **Option 2: Show POIs in a panel next to the map**
 
-    This allows the user to see the POIs, categories and descriptions at the same time as the map.
+    This allows users to see the POIs, categories and descriptions at the same time as the map.
 
-**I opted for option 2** because the map provides the geographic information while the panel provides the detailed information.
+**I opted for option 2** because the map provides geographic information while the panel provides detailed information.
 
-The POIs are displayed in route order and numbered to match their markers on the map. Clicking a POI in the panel focuses its marker and opens its popup.
+The POIs are displayed in route order and numbered to match their markers on the map.
 
-#### Map and Panel Layout
+Clicking a POI in the panel focuses its marker and opens its popup.
+
+### Map and Panel Layout
 
 I considered placing the POI panel above or below the map, but decided to place it beside the map on larger screens.
 
-This allows the user to see the route and the POI information at the same time.
+This allows the user to see the route and POI information at the same time.
 
 On smaller screens the layout changes to a single column, with the map above the POI panel.
 
-#### Frontend Dependencies
+### Frontend Dependencies
 
 I wanted to avoid adding dependencies where the existing Rails setup was enough.
 
@@ -578,62 +733,35 @@ No frontend framework or additional marker library is used.
 
 Leaflet is loaded through Importmap and the frontend assets are served through Propshaft.
 
-### Refactoring
+# Refactoring
 
-### Documentation
+The implementation changed in a few areas after I had a working version of the application.
 
-The application includes separate pages for the architecture decisions and deployment instructions, along with the Swagger API documentation.
+I intentionally kept these changes documented rather than replacing the original decisions, because they show how the design changed after testing the actual behaviour of the system.
 
-I added shared navigation to the Rails application layout so these sections are accessible from every page.
+## Selecting the requested POIs
 
-- **Planner** — the roadtrip planning interface.
-- **Architecture** — the main technical and architectural decisions.
-- **Deployment** — production deployment considerations.
-- **Swagger** — interactive API documentation.
--
+The original implementation selected POIs at roughly even positions in the ordered POI list.
 
-### Shared Navigation
+After testing the frontend, I noticed that the selected POIs were often clustered around the origin and destination.
 
-I considered two options:
+This happened because the dataset contains many more POIs near some parts of the route than others. Evenly spacing the indexes in the collection therefore does not necessarily produce an even geographic distribution.
 
-- **Option 1: Add navigation to each page**
-
-    Each page would define its own navigation links. This is simple for a small number of pages, but duplicates the same markup and makes changes harder to maintain.
-
-- **Option 2: Add shared navigation to the Rails layout**
-
-    The navigation is defined once in the application layout and automatically appears on the Rails pages.
-
-**I opted for option 2** because the Planner, Architecture and Deployment pages are all part of the same application. Keeping the navigation in the shared layout avoids duplication and keeps the structure consistent.
-
-The Swagger page uses its own Rswag template, so the same navigation structure and styling are included there separately. Also the button for the current page is disabled and on a hovered state.
-
-### Documentation Pages
-
-I considered keeping the architecture and deployment documentation in the README, but separated them into dedicated pages.
-
-- **Architecture** contains the main implementation and design decisions.
-- **Deployment** contains production deployment requirements and considerations.
-
-**I opted for separate pages** to keep the main README as the initial challenge spec while still making the detailed documentation easily accessible through the shared navigation.
-
-#### Selecting the requested POIs
-
-After finishing the frontend bonus, I noticed that the selected POIs were often clustered around the origin and destination. This is because the dataset has many more POIs near the locations than in the middle of the route, so evenly spacing them in the ordered list does not produce an even geographic distribution.
-
-I considered 2 options:
+I considered:
 
 - **Option 1: Select evenly spaced POIs from the ordered list**
 
-    This is simple, but does not account for how POIs are distributed geographically.
+    Simple, but does not account for the geographic distribution of POIs.
 
 - **Option 2: Divide the route into sections and select POIs based on their position along the route**
 
-    This distributes POIs based on the route rather than the number of POIs in each area. Some sections may not contain any POIs.
+    Distributes POIs based on their geographic position rather than their position in the collection.
 
-**I opted for option 2** because I want the selected POIs to be spread across the trip.
+**I changed the implementation to option 2.**
 
-The route position is represented between `0.0` and `1.0`, where `0.0` is the origin and `1.0` is the destination. I divide this range into as many buckets as the requested number of POIs and try to select one POI from each bucket.
+The route position is represented between `0.0` and `1.0`, where `0.0` is the origin and `1.0` is the destination.
+
+I divide this range into as many buckets as the requested number of POIs and try to select one POI from each bucket.
 
 For example, requesting 4 POIs creates 4 sections:
 
@@ -645,120 +773,219 @@ Origin                                      Destination
 
 When a bucket contains multiple POIs, I select the one closest to its centre.
 
-If a bucket is empty, I fill the remaining slots with unused POIs that are furthest from the POIs already selected. This helps maximise the geographic spread.
+If a bucket is empty, I fill the remaining slots with unused POIs that are furthest from the POIs already selected.
+
+This helps maximise the geographic spread of the selected POIs.
 
 The category filter is applied before selection, so only matching POIs are considered.
 
-If fewer POIs are available than requested, I return all matching POIs.
+If fewer POIs are available than requested, all matching POIs are returned.
 
-#### Preventing Identical Origin and Destination
+## Preventing Identical Origin and Destination
 
-I also want to prevent the origin and destination from being the same location.
+I also added validation to prevent the origin and destination from being the same location.
 
-I will validate this at the API level and return `400 Bad Request` when they are identical.
+The API returns `400 Bad Request` when they are identical.
 
-In the frontend, the selected location is disabled in the other dropdown to prevent the same selection.
+In the frontend, the selected location is disabled in the other dropdown to prevent the same selection from being made.
 
-#### Multiple Category Filtering
+This keeps the validation in the backend as the source of truth while also preventing an invalid selection in the UI.
 
-I decided to refactor the trip-planning category filter to support multiple categories instead of a single category.
+## Multiple Category Filtering
+
+I changed the trip-planning category filter to support multiple categories instead of a single category.
 
 I considered two options:
 
 - **Option 1: Match all selected categories**
 
-    A POI would only be returned if it belongs to every selected category. For example, selecting `Beach` and `View` would only return POIs that have both categories.
+    A POI would only be returned if it belongs to every selected category.
 
 - **Option 2: Match any selected category**
 
-    A POI would be returned if it belongs to at least one of the selected categories. For example, selecting `Beach` and `View` would return POIs belonging to either category.
+    A POI would be returned if it belongs to at least one of the selected categories.
 
-**I opted for option 2** because POIs can belong to multiple categories and users are likely selecting multiple interests they want to discover. This gives users a broader set of relevant stops rather than excluding POIs that only match one of their interests.
+**I opted for option 2** because POIs can belong to multiple categories and users are likely selecting multiple interests they want to discover.
 
-The API accepts multiple category IDs, the trip-planning service filters POIs against the selected categories, and the frontend category dropdown allows multiple selections.
+This provides a broader set of relevant stops rather than excluding POIs that only match one of the selected interests.
 
-### Route Algorithm
+The API accepts multiple category IDs, the trip-planning service filters POIs against the selected categories, and the frontend category selector allows multiple selections.
 
-After finishing the exercise, I decided to revisit the trip planning algorithm and see if I could make it more useful for an actual road trip.
+## Route Algorithm
 
-In the original implementation, I used a straight line between the origin and destination and considered a POI to be along the route if it was within a certain distance of that line. This was a simple approach and worked well for the scope of the exercise, but it does not represent how someone would actually travel between two locations.
+After finishing the exercise, I revisited the trip-planning algorithm to see if I could make it more useful for an actual road trip.
 
-I decided to refactor this part to use the actual driving route instead. The route is now calculated using a routing service, and the resulting road geometry is used with PostGIS to find POIs that are close to the route.
+The original implementation used a straight line between the origin and destination and considered a POI to be along the route if it was within a certain distance of that line.
 
-The frontend was already using a routing service to display the driving route on the map, so using the actual road route in the trip planning algorithm also makes the POIs returned by the API more consistent with what is shown to the user.
+This was simple and worked for the scope of the exercise, but it did not represent how someone would actually travel between two locations.
 
-I kept the original straight-line behaviour as a fallback. The routing service is an external dependency, so if it fails or is unavailable, the application falls back to the previous implementation instead of failing the whole trip planning request.
+I changed this to use the actual driving route.
 
-To keep the responsibilities separated, I extracted the routing logic into its own service. `TripPlanningService` is still responsible for finding and selecting POIs along the route, while `RoutingService` is responsible for communicating with the external routing service and returning the route geometry.
+The route is now calculated using a routing service, and the resulting road geometry is used with PostGIS to find POIs that are close to the route.
 
-This also keeps the fallback behaviour isolated from the rest of the trip planning logic and makes the external routing dependency easier to replace or change in the future.
+The frontend was already using a routing service to display the driving route on the map, so using the same concept for backend POI selection makes the API results more consistent with what is shown to the user.
 
-### Distance Threshold (Revisited)
+### Routing Failure Fallback
 
-After switching the route calculation to use the actual driving route geometry, I tested the trip-planning endpoint again and found that 10km excluded POIs in stretches of the route where they are relatively sparse, leaving fewer options for the bucket-selection algorithm to choose from in those sections.
+Using a routing service introduces an external dependency.
 
-I raised the threshold to 20km. This brings more POIs into range along sparser stretches of the route without noticeably including POIs that are clearly unrelated to the trip, giving the selection algorithm a better set of candidates to spread across the full route.
+I therefore did not want routing failures to make trip planning completely unavailable.
 
-### Centralize API response serialization
+The original straight-line implementation is retained as a fallback.
 
-I noticed some duplication in how API responses were being serialized across the controllers. I extracted the shared serialization logic into methods in the base controller, allowing the controllers to reuse the same logic and keeping the response format consistent.
+If the routing service fails or is unavailable, the application falls back to the previous implementation instead of failing the entire trip-planning request.
 
-## Future Improvements
+### Routing Service Separation
 
-The current implementation covers the main requirements of the challenge. If I had more time, I would focus on improving some of the areas below rather than adding more features.
+To keep responsibilities separated, I extracted the routing logic into its own service.
 
-### POI Selection
+`TripPlanningService` is responsible for finding and selecting POIs along the route.
 
-The current POI selection uses the straight line between the origin and destination to determine where stops should be placed.
+`RoutingService` is responsible for communicating with the external routing service and returning route geometry.
 
-With more time, I would improve this by using the actual driving route when selecting POIs. This would make the recommendations more accurate, especially when the road route differs significantly from the straight-line route.
+This isolates the external dependency and makes it easier to replace the routing provider later.
 
-### Frontend Testing
+## Distance Threshold
+
+After switching from straight-line geometry to actual route geometry, I tested the trip-planning endpoint again.
+
+The original 10 km threshold excluded POIs in stretches of the route where they were relatively sparse.
+
+This left the bucket-selection algorithm with fewer candidates in some sections.
+
+I therefore increased the threshold from **10 km to 20 km**.
+
+The larger threshold brings more POIs into range along sparse sections of the route without noticeably including POIs that are clearly unrelated to the trip.
+
+The decision is therefore a consequence of testing the actual algorithm rather than simply choosing a larger threshold in advance.
+
+## Centralize API Response Serialization
+
+I noticed duplication in how API responses were being serialized across the controllers.
+
+I extracted the shared serialization logic into methods in the base controller.
+
+This allows controllers to reuse the same serialization behaviour and keeps the response format consistent across endpoints.
+
+## Test Refactoring
+
+As the API grew, the test suite also grew to cover pagination, filtering, invalid pagination parameters and the different collection endpoints.
+
+I refactored the test files so that related behaviours are grouped consistently and the API contract is easier to understand from the tests.
+
+Pagination tests specifically cover:
+
+- default pagination behaviour
+- explicit `page`
+- explicit `per_page`
+- filtering together with pagination
+- empty results
+- invalid pagination parameters
+- pagination across collection endpoints
+
+The intention is not only to increase coverage, but to make the tests describe the API behaviour clearly.
+
+## Swagger Schema Updates
+
+As the API changed, I also updated the Swagger/OpenAPI schemas so that the documented contract stays aligned with the implementation.
+
+This is particularly important for changes such as pagination and the updated response structures.
+
+The Swagger documentation should therefore be treated as part of the API contract rather than as separate documentation that can drift from the implementation.
+
+# Future Improvements
+
+The current implementation covers the main requirements of the challenge.
+
+If I had more time, I would focus on production hardening and areas where the current implementation has an obvious limitation rather than adding more features.
+
+## Frontend Testing
 
 The main application logic is covered by automated tests, but most of the frontend behaviour is currently tested manually.
 
-I would add browser or JavaScript tests for the main interactions, including category selection, origin and destination validation, loading and error states, and the interaction between the POI list and the map.
+I would add browser or JavaScript tests for the main interactions, including:
 
-### Routing Service
+- category selection
+- origin and destination validation
+- loading states
+- error states
+- interaction between the POI list and the map
+- route rendering
+
+## Routing Service
 
 The application currently uses the public OSRM service to calculate driving routes.
 
-This works well for the challenge, but it would need more consideration in a production environment. I would add better handling for timeouts and service failures and make the routing service easier to replace if another provider was needed.
+This works well for the challenge, but a production application would need more consideration around:
 
-### Performance
+- timeouts
+- rate limits
+- service failures
+- retry behaviour
+- monitoring
+- replacing the routing provider
+
+The current `RoutingService` abstraction provides a useful boundary for making those changes without coupling the rest of the application directly to the external provider.
+
+## Performance
 
 The current dataset is relatively small, so the existing queries are sufficient.
 
-If the amount of data increased, I would benchmark the PostGIS queries and category filtering and optimise them based on the actual bottlenecks rather than adding indexes unnecessarily.
+If the amount of data increased, I would benchmark the PostGIS queries and category filtering and optimize them based on actual bottlenecks rather than adding indexes unnecessarily.
 
-### API Structure
+I would also revisit whether pagination should be applied differently depending on the endpoint and expected dataset size.
+
+## API Structure
 
 The API is intentionally kept simple, with controllers handling validation and response formatting.
 
-If the API became larger, I would consider moving some of this logic into dedicated serializers or other objects. This would keep the controllers smaller and make the API responses easier to maintain.
+If the API became significantly larger, I would consider moving some of this logic into dedicated serializers or other objects.
 
-### Accessibility
+The current structure is deliberately proportional to the size of the application rather than introducing abstractions before they are needed.
+
+## Accessibility
 
 The frontend was mainly built around the requirements of the challenge.
 
-With more time, I would do a dedicated accessibility pass, particularly around keyboard navigation, focus handling and screen-reader support.
+With more time, I would do a dedicated accessibility pass, particularly around:
 
-I would also make the custom category selector fully keyboard accessible, including focus management and selecting options with the keyboard.
+- keyboard navigation
+- focus handling
+- screen-reader support
+- map interaction
+- the custom category selector
 
-### Monitoring
+The custom category selector should support keyboard focus, navigation and selection rather than relying only on mouse interaction.
 
-The application currently relies on the logging provided by the container and hosting platform.
+## Monitoring
 
-For a production application, I would add error tracking, structured logs and basic application metrics to make it easier to identify and investigate problems.
+The application currently relies on logging provided by the container and hosting platform.
 
-### Deployment
+For a production application, I would add:
+
+- error tracking
+- structured logs
+- basic application metrics
+- monitoring for failures from the external routing service
+
+This would make it easier to identify and investigate problems in production.
+
+## Deployment
 
 The application is containerized and can be deployed to a container-based hosting platform.
 
-With more time, I would add deployment automation for a specific hosting provider, including running migrations and handling the data import as part of the release process.
+With more time, I would add deployment automation for a specific hosting provider, including:
 
-### Environment Configuration
+- running migrations
+- handling the initial data import
+- configuring production environment variables
+- health checks
+- deployment rollback considerations
+
+## Environment Configuration
 
 Configuration currently lives directly in `docker-compose.yml`, which is reasonable while the project only runs locally with disposable credentials.
 
-If this project were deployed or introduced real secrets, I would move configuration to `.env` files (git-ignored) and reference them from `docker-compose.yml` instead of hardcoding values.
+If the project were deployed or introduced real secrets, I would move those values to environment variables managed outside the repository and reference them from `docker-compose.yml`.
+
+This keeps the current local setup simple without treating local disposable credentials as if they were production secrets.
