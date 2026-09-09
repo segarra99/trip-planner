@@ -44,6 +44,17 @@ paths:
                 required:
                 - categories
                 - pagination
+        '400':
+          description: invalid pagination parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
   "/locations":
     get:
       summary: List locations
@@ -91,6 +102,17 @@ paths:
                 required:
                 - locations
                 - pagination
+        '400':
+          description: invalid pagination parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
   "/locations/{id}":
     get:
       summary: Retrieve a location
@@ -172,6 +194,17 @@ paths:
                 required:
                 - pois
                 - pagination
+        '400':
+          description: invalid pagination parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                - error
   "/pois/{id}":
     get:
       summary: Retrieve a POI
@@ -232,6 +265,12 @@ paths:
                 "$ref": "#/components/schemas/Poi"
         '400':
           description: invalid request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: POI not found
           content:
             application/json:
               schema:
