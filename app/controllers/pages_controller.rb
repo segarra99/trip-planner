@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-class RoadtripController < ApplicationController
-  def index; end
+class PagesController < ApplicationController
+  def roadtrip; end
 
   def architecture
     architecture_path = Rails.root.join('docs', 'ARCHITECTURE.md')

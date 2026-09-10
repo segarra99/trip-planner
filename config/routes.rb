@@ -5,9 +5,9 @@ Rails.application.routes.draw do
   mount Rswag::Api::Engine => '/api-docs'
 
   # UI
-  root 'roadtrip#index'
-  get '/architecture', to: 'roadtrip#architecture'
-  get '/deployment', to: 'roadtrip#deployment'
+  root 'pages#roadtrip'
+  get '/architecture', to: 'pages#architecture'
+  get '/deployment', to: 'pages#deployment'
 
   # API
   scope module: :api do
