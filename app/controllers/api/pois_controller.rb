@@ -15,6 +15,7 @@ module Api
       page, per_page = pagination_params
 
       pois = pois
+             .includes(:categories)
              .order(:id)
              .limit(per_page)
              .offset((page - 1) * per_page)
