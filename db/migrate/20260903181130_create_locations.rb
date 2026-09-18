@@ -12,6 +12,5 @@ class CreateLocations < ActiveRecord::Migration[8.1]
     end
 
     add_index :locations, :name, unique: true
-    add_index :locations, :location_point, using: :gist
   end
 end

@@ -13,6 +13,9 @@ class CreatePois < ActiveRecord::Migration[8.1]
     end
 
     add_index :pois, %i[name location_point], unique: true
-    add_index :pois, :location_point, using: :gist
+    add_index :pois,
+              'location_point::geography',
+              using: :gist,
+              name: 'index_pois_on_location_point_geography'
   end
 end
